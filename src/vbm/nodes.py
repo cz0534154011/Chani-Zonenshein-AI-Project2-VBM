@@ -25,7 +25,7 @@ def seller_limits(state: MainState, known: dict) -> dict:
     """Supplier limits for the next batch: dataset limits or a seeded draw, overridden by `known`."""
     if state.get("seller_profiles"):
         return {**state["seller_profiles"], **known}
-    return generate_limits(state["buyer"], state.get("seed", 0), known)
+    return generate_limits(state.get("draw_buyer") or state["buyer"], state.get("seed", 0), known)
 
 
 # המפענח: טקסט חופשי -> BuyerTerms ו-parse_notes
@@ -69,14 +69,16 @@ def confirm_terms(state: MainState) -> dict:
 def plan_simulations(state: MainState) -> dict:
     """Build the simulation specs (3 styles x 3 variants by default) and start a new batch."""
     buyer = validate_buyer_terms(state["buyer"])
-    profiles = profiles_for_all_styles(seller_limits({**state, "buyer": buyer}, state.get("seller_known") or {}))
+    draw_buyer = state.get("draw_buyer") or buyer
+    profiles = profiles_for_all_styles(seller_limits({**state, "draw_buyer": draw_buyer}, state.get("seller_known") or {}))
     styles = state.get("seller_styles") or STYLES
     batch_id = state.get("batch_id", 0) + 1
     max_rounds = state.get("max_rounds", MAX_ROUNDS)
     specs = [{"buyer": with_variant(buyer, variant), "seller": profiles[style], "variant": variant,
               "batch_id": batch_id, "max_rounds": max_rounds}
              for style in styles for variant in VARIANTS]
-    return {"buyer": buyer, "batch_id": batch_id, "sim_specs": specs, "max_rounds": max_rounds}
+    return {"buyer": buyer, "draw_buyer": draw_buyer, "batch_id": batch_id, "sim_specs": specs,
+            "max_rounds": max_rounds}
 
 
 # ניתוח בקוד של ה-batch הנוכחי

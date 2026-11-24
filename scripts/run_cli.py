@@ -3,24 +3,13 @@
 import argparse
 import random
 import uuid
-from datetime import datetime
-from pathlib import Path
 
 from dotenv import load_dotenv
-from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.types import Command
 
-from vbm.analysis import CONCESSION_HE, REASON_HE, STYLE_HE, VARIANT_HE
-from vbm.economics import variant_of
+from vbm.analysis import REASON_HE, STYLE_HE, VARIANT_HE
+from vbm.display import BUYER_LABELS, SELLER_LABELS, offer_he, result_line, save_report, transcript_he
 from vbm.seller_sim import TERMS_HE
-
-BUYER_LABELS = {
-    "product": "מוצר", "quantity": "כמות", "max_budget_total": "תקציב מקסימלי (סך הכל)",
-    "target_total": "יעד (סך הכל)", "deadline_days": "מועד אחרון (ימים)",
-    "preferred_days": "מועד מועדף (ימים)", "preferred_terms": "תנאי תשלום מועדפים",
-}
-SELLER_LABELS = {"list_price": "מחירון", "min_price": "מחיר מינימום", "standard_days": "זמן אספקה רגיל (ימים)",
-                 "min_days": "זמן אספקה מינימלי (ימים)"}
 
 
 # קריאת הפרמטרים של שורת הפקודה
@@ -46,34 +35,23 @@ def read_request() -> str:
     return "\n".join(lines)
 
 
-# הצעה בעברית
-def offer_he(offer) -> str:
-    """One offer as Hebrew text."""
-    return f"{offer.unit_price} ליחידה, {offer.delivery_days} ימים, {TERMS_HE[offer.payment_terms]}"
-
-
-# הדפסת שורת תמליל חדשה: שורת התקדמות בעברית, ומתחתיה ההודעה המקורית של הקונה
-def print_entry(label: str, entry: dict) -> None:
-    """Live progress line (option C1)."""
-    if entry["speaker"] == "seller":
-        print(f"{label} סבב {entry['round']} - הספק: {entry['message_he']}")
-        return
-    action = " או ".join(offer_he(o) for o in entry["offers"]) if entry["offers"] else "פרישה"
-    print(f"{label} סבב {entry['round']} - הקונה: {action}")
-    print(f"      {entry['message']}")
-
-
-# הרצת הגרף עד העצירה הבאה או הסוף, עם תצוגה חיה של הסימולציות
-def run_until_pause(graph, payload, config, labels: dict) -> object:
-    """Stream finished tasks (including subgraph nodes), print new transcript entries, return the state snapshot."""
+# הרצת הגרף עד העצירה הבאה או הסוף: מונה שמתעדכן במקום, ושורה לכל סימולציה שהסתיימה
+def run_until_pause(graph, payload, config) -> object:
+    """Stream finished tasks, show a progress counter and one line per finished simulation."""
+    total, done = 0, 0
     for namespace, task in graph.stream(payload, config, stream_mode="tasks", subgraphs=True):
         values = task.get("result")
-        if not namespace or not isinstance(values, dict):
+        if not isinstance(values, dict):
             continue
-        if task["name"] == "seller_open":
-            labels[namespace] = f"[{STYLE_HE[values['seller']['style']]} | {VARIANT_HE[variant_of(values['buyer'])]}]"
-        for entry in values.get("transcript", []):
-            print_entry(labels.get(namespace, ""), entry)
+        if not namespace and task["name"] == "plan_simulations":
+            total, done = len(values["sim_specs"]), 0
+            print(f"\nמריץ {total} סימולציות...")
+        elif namespace and task["name"] == "finalize":
+            done += 1
+            print("\r" + result_line(values["sim_results"][0]))
+        else:
+            continue
+        print(f"\rהסתיימו {done}/{total}", end="" if done < total else "\n", flush=True)
     return graph.get_state(config)
 
 
@@ -117,37 +95,14 @@ def print_results_table(results: list[dict]) -> None:
         print(f"{i}. ספק {STYLE_HE[r['style']]} | {VARIANT_HE[r['variant']]} | {r['rounds']} סבבים | {outcome}")
 
 
-# תרגום ההודעות והנימוקים של הקונה לעברית, לתצוגה בלבד
-def translate(texts: list[str]) -> list[str]:
-    """Translate numbered English lines to Hebrew with the translation model."""
-    from vbm.llm import get_translator
-    numbered = "\n".join(f"{i}. {t}" for i, t in enumerate(texts, 1))
-    system = ("Translate each numbered line to Hebrew. Keep every number exactly. "
-              "Return the same numbering, one line per item, nothing else.")
-    answer = get_translator().invoke([SystemMessage(content=system), HumanMessage(content=numbered)])
-    out = {}
-    for line in answer.splitlines():
-        head, _, rest = line.partition(".")
-        if head.strip().isdigit():
-            out[int(head)] = rest.strip()
-    return [out.get(i, t) for i, t in enumerate(texts, 1)]
-
-
 # הצגת תמליל מלא אחד בעברית, כולל הנימוקים של הקונה
 def show_transcript(result: dict) -> None:
-    """Print one full transcript: seller lines from the Hebrew template, buyer lines translated."""
-    buyer_entries = [e for e in result["transcript"] if e["speaker"] == "buyer"]
-    texts = []
-    for e in buyer_entries:
-        texts += [e["message"], e["rationale"] or ""]
-    translated = iter(translate(texts)) if texts else iter([])
+    """Print one full transcript in Hebrew."""
     print(f"\n=== תמליל: ספק {STYLE_HE[result['style']]}, {VARIANT_HE[result['variant']]} ===")
-    for e in result["transcript"]:
-        if e["speaker"] == "seller":
-            print(f"סבב {e['round']} - הספק: {e['message_he']}")
-        else:
-            print(f"סבב {e['round']} - הקונה: {next(translated)}")
-            print(f"      (נימוק: {next(translated)})")
+    for row in transcript_he(result):
+        print(f"סבב {row['round']} - {row['speaker']}: {row['text']}")
+        if row["rationale"] is not None:
+            print(f"      (נימוק: {row['rationale']})")
 
 
 # בחירת תמלילים לצפייה, עד Enter
@@ -198,16 +153,6 @@ def print_debrief(debrief: dict) -> None:
         print(f"ספק {STYLE_HE[style]}: נסגר ב-{price}{extra}")
 
 
-# שמירת הדוח לקובץ Markdown
-def save_report(text: str, seed: int, out_dir: str) -> Path:
-    """Write the report to <out_dir>/report_<time>_seed<seed>.md and return the path."""
-    folder = Path(out_dir)
-    folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"report_{datetime.now():%Y%m%d_%H%M%S}_seed{seed}.md"
-    path.write_text(text, encoding="utf-8")
-    return path
-
-
 # נקודת הכניסה: מפתחות, גרף עם checkpointer, ולולאה על העצירות עד הדוח
 def main() -> None:
     """Run one interactive session from the request to the saved report."""
@@ -222,9 +167,8 @@ def main() -> None:
     payload = {"raw_request": read_request(), "seed": seed}
     if args.seller:
         payload["seller_styles"] = [args.seller]
-    labels: dict = {}
     while True:
-        snapshot = run_until_pause(graph, payload, config, labels)
+        snapshot = run_until_pause(graph, payload, config)
         if not snapshot.interrupts:
             break
         value = snapshot.interrupts[0].value

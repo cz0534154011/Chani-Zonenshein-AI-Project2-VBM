@@ -68,6 +68,7 @@ class MainState(TypedDict):
     seller_profiles: dict | None
     seller_styles: list[str] | None  # None = all three styles (CLI --seller picks one)
     seed: int
+    draw_buyer: BuyerTerms | None  # terms the secret supplier was drawn against, frozen at batch 1
     max_rounds: int
     # simulations
     batch_id: int

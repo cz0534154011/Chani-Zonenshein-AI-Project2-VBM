@@ -112,3 +112,17 @@ def test_seller_styles_limits_the_simulations(fakes):
     graph.invoke({"buyer": BUYER, "seller_profiles": LIMITS, "seller_styles": ["tough"], "max_rounds": 8}, config)
     results = graph.get_state(config).values["sim_results"]
     assert len(results) == 3 and {r["style"] for r in results} == {"tough"}
+
+
+def test_what_if_keeps_the_drawn_supplier(fakes):
+    graph = build_graph(memory_checkpointer())
+    config = {"configurable": {"thread_id": "t6"}}
+    graph.invoke({"buyer": BUYER, "seed": 1, "max_rounds": 8}, config)
+    before = graph.get_state(config).values["sim_specs"][0]["seller"]
+    graph.invoke(Command(resume={"action": "change_terms", "changes": {"target_total": 120000}}), config)
+    state = graph.get_state(config).values
+    assert state["batch_id"] == 2 and state["sim_specs"][0]["seller"] == before
+
+    graph.invoke(Command(resume={"action": "change_seller", "known": {"min_days": 10}}), config)
+    after = graph.get_state(config).values["sim_specs"][0]["seller"]
+    assert after == {**before, "min_days": 10}
