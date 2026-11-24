@@ -36,3 +36,31 @@ MIN_DAYS_FLOOR: int = 5
 
 # טווח הסכמה "צר": רוחב הטווח קטן מ-8% מהתקרה (משחזר את התמהיל שבאפיון)
 NARROW_ZOPA_RATIO: float = 0.08
+
+# המעקה: מספר הניסיונות החוזרים של הקונה לפני שהקוד מצמיד את ההצעה (S4)
+GUARDRAIL_MAX_RETRIES: int = 2
+
+# מודל לכל תפקיד (אפיון 13); בחירה סופית במשימה 0.2
+MODELS: dict[str, str] = {
+    "parser": "gpt-4o-mini",
+    "buyer": "gpt-4o-mini",
+    "report": "gpt-4o-mini",
+    "translate": "gpt-4o-mini",
+}
+
+# temperature לכל תפקיד: הקונה מגוון, הפענוח והדוח עקביים (ה6)
+TEMPERATURES: dict[str, float] = {
+    "parser": 0.0,
+    "buyer": 0.7,
+    "report": 0.0,
+    "translate": 0.0,
+}
+
+# ניתוח: ויתור מכריע רק אם שיפר את המחיר הממוצע ביותר מ-1% (אפיון 7)
+DECISIVE_MIN_IMPROVEMENT: float = 0.01
+
+# סבלנות: הסבב הראשון שבו ספק קשוח ירד מתחת ל-90% מהמחירון (אפיון 7)
+PATIENCE_RATIO: float = 0.9
+
+# אימות הדוח: מספר הכתיבות המקסימלי לפני דוח חלופי (סעיף 3.4)
+MAX_REPORT_ATTEMPTS: int = 3

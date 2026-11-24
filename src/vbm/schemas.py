@@ -34,6 +34,21 @@ class BuyerDecision(BaseModel):
         return self
 
 
+class ParsedRequest(BaseModel):
+    """The parser's reading of the free-text request (LLM structured output)."""
+
+    product: str
+    quantity: int
+    max_budget_total: float
+    target_total: float
+    deadline_days: int
+    preferred_days: int | None
+    preferred_terms: PaymentTerms
+    known_list_price: float | None
+    known_standard_days: int | None
+    notes: list[str]
+
+
 class BuyerTerms(TypedDict):
     """The business owner's limits and preferences."""
 
@@ -57,6 +72,16 @@ class SellerProfile(TypedDict):
     style: SellerStyle
 
 
+# שורה אחת בתמליל המשא ומתן - רק מה שנאמר בפועל, בלי נתונים סודיים של הספק
+class TranscriptEntry(TypedDict):
+    round: int
+    speaker: Literal["buyer", "seller"]
+    offers: list[Offer]  # buyer: one offer or none; seller: one or two options
+    message: str  # English, as said in the negotiation
+    message_he: str | None  # seller only: Hebrew from the same template
+    rationale: str | None  # buyer only: private reasoning, for display and trace
+
+
 class SimResult(TypedDict):
     """The result of one simulated negotiation."""
 
@@ -71,6 +96,7 @@ class SimResult(TypedDict):
     message_mismatch: int
     first_offer: Offer | None
     accepted_opening: bool
+    transcript: list[TranscriptEntry]
 
 
 # בדיקת תקינות של נתוני הקונה והשלמת ברירות מחדל
