@@ -1,0 +1,8 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "vbm_main": "./src/vbm/graph.py:graph",
+    "vbm_subgraph": "./src/vbm/subgraph.py:subgraph"
+  },
+  "env": ".env"
+}

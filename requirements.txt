@@ -4,3 +4,4 @@ langchain-openai==1.8.5
 langsmith==0.16.1
 python-dotenv==1.2.4
 langgraph-cli[inmem]==0.4.43
+pytest==9.2.0
