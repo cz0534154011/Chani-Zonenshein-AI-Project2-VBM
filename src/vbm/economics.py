@@ -1,8 +1,8 @@
 """VBM economics: supplier floors and the zone of possible agreement (ZOPA)."""
 
-from typing import TypedDict
+from typing import Literal, TypedDict
 
-from vbm.config import FAST_DELIVERY_FACTOR, PAYMENT_FACTORS, PRICE_DECIMALS
+from vbm.config import FAST_DELIVERY_FACTOR, NARROW_ZOPA_RATIO, PAYMENT_FACTORS, PRICE_DECIMALS
 from vbm.schemas import BuyerTerms, PaymentTerms, SellerProfile, Variant
 
 
@@ -76,3 +76,17 @@ def compute_zopa(buyer: BuyerTerms, seller: SellerProfile) -> Zopa:
     zopa_high = round_price(buyer["max_budget_total"] / buyer["quantity"])
     zopa_exists = zopa_low is not None and zopa_low <= zopa_high
     return {"zopa_low": zopa_low, "zopa_high": zopa_high, "zopa_exists": zopa_exists}
+
+
+ZopaCategory = Literal["wide", "narrow", "no_zopa_price", "no_zopa_delivery"]
+
+
+# סיווג טווח ההסכמה: רחב / צר / אין טווח במחיר / אין טווח במועד
+def classify_zopa(zopa: Zopa) -> ZopaCategory:
+    """Classify a ZOPA into one of the four dataset categories."""
+    if zopa["zopa_low"] is None:
+        return "no_zopa_delivery"
+    if not zopa["zopa_exists"]:
+        return "no_zopa_price"
+    width = zopa["zopa_high"] - zopa["zopa_low"]
+    return "narrow" if width < NARROW_ZOPA_RATIO * zopa["zopa_high"] else "wide"
