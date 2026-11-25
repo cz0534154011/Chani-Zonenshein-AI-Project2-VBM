@@ -78,3 +78,8 @@ DATASET_DEADLINE_RANGE: tuple[int, int] = (14, 45)
 DATASET_PREFERRED_GAP_RANGE: tuple[int, int] = (0, 10)          # deadline minus this
 DATASET_QUOTAS: dict[str, int] = {"wide": 6, "narrow": 5, "no_zopa_price": 4, "no_zopa_delivery": 3}
 DATASET_NAME: str = "vbm-meeting-prep-18"
+
+# ניסויים בשלב 9: חזרות לכל תרחיש, ותרחישים שרצים במקביל (כל אחד מריץ 9 סימולציות)
+EXPERIMENT_REPETITIONS: int = 2
+EXPERIMENT_MAX_CONCURRENCY: int = 2
+DATASET_CATEGORY_ORDER: tuple[str, ...] = ("wide", "narrow", "no_zopa_price", "no_zopa_delivery")
