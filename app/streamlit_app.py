@@ -224,7 +224,7 @@ def show_done() -> None:
 def main() -> None:
     """Page layout, sidebar settings and the stage dispatcher."""
     load_dotenv()
-    st.set_page_config(page_title="VBM - הכנה לפגישת רכש", layout="wide")
+    st.set_page_config(page_title="VBM - Virtual Business Meeting", layout="wide")
     st.markdown(RTL_CSS, unsafe_allow_html=True)
     if "graph" not in st.session_state:
         st.session_state.seed = random.randint(1, 999_999)
@@ -237,7 +237,7 @@ def main() -> None:
         if st.button("התחל מחדש"):
             new_session()
             st.rerun()
-    st.title("VBM - הכנה לפגישת רכש")
+    st.title("VBM - Virtual Business Meeting")
     {"input": show_input, "confirm_terms": show_confirm,
      "findings": show_findings, "done": show_done}[st.session_state.stage]()
 

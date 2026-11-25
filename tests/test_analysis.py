@@ -1,7 +1,7 @@
 """Tests for vbm.analysis (ReportData) and the report number check in vbm.nodes."""
 
 from vbm.analysis import (analyze_results, current_batch, decisive_concession, lowest_allowed_offer,
-                          patience_round, patience_text, price_gap)
+                          concession_text, patience_round, patience_text, price_gap, price_range_text)
 from vbm.nodes import fallback_report, unverified_numbers
 from vbm.schemas import Offer
 
@@ -105,3 +105,21 @@ def test_patience_text_covers_every_case():
     assert "לא נבדק ספק קשוח" in patience_text(data)
     data["patience"] = 5
     assert "בסבב 5 מתוך 8" in patience_text(data)
+
+
+def test_price_range_text_single_price_and_range():
+    assert price_range_text({"min": 2500, "max": 2500}) == "כל עסקאות הבסיס נסגרו ב-2500 ליחידה."
+    assert "בין 380 ל-400" in price_range_text({"min": 380, "max": 400})
+    assert "לא נסגרה" in price_range_text(None)
+
+
+def test_concession_text_gives_the_reason():
+    converted = [result("tough", "base", 400), result("balanced", "base", reason="max_rounds"),
+                 result("balanced", "payment", 410), result("tough", "payment", 400)]
+    data = analyze_results(converted, BUYER)
+    assert "סימולציה אחת" in concession_text(data) and "מאוזן" in concession_text(data)
+    cheaper = analyze_results([result("tough", "base", 400), result("tough", "delivery", 380)], BUYER)
+    assert "מ-400" in concession_text(cheaper) and "ל-380" in concession_text(cheaper)
+    flat = analyze_results([result("tough", "base", 400), result("tough", "payment", 399)], BUYER)
+    assert "אף גמישות" in concession_text(flat)
+    assert unverified_numbers(fallback_report(data), data) == []

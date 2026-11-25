@@ -85,3 +85,10 @@ def test_report_prompt_is_hebrew_only_and_has_the_gap():
     assert "פער המחיר" in view and "null" not in user
     assert not re.search(r"[A-Za-z]", user.replace("office chair", ""))
     assert unverified_numbers(user, data) == []
+    assert "מה יסגור את הפער" in build_report_prompt(data, [])[0].content
+
+
+def test_report_prompt_drops_the_gap_section_without_a_gap():
+    results = [sim(s, v, 400, 400) for s in ("tough", "balanced", "flexible") for v in ("base", "payment", "delivery")]
+    system = build_report_prompt(analyze_results(results, BUYER), [])[0].content
+    assert "מה יסגור את הפער" not in system and "## כמה סבלנות נדרשת" in system

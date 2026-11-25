@@ -154,6 +154,34 @@ def patience_text(data: dict) -> str:
             "כלומר מול ספק כזה נדרשת סבלנות רבה.")
 
 
+# משפט טווח המחירים בעברית: מחיר אחד או טווח
+def price_range_text(price_range: dict | None) -> str:
+    """Hebrew sentence on the base-deal prices."""
+    if not price_range:
+        return "לא נסגרה אף עסקה בגרסת הבסיס."
+    if price_range["min"] == price_range["max"]:
+        return f"כל עסקאות הבסיס נסגרו ב-{price_range['min']} ליחידה."
+    return f"עסקאות הבסיס נסגרו בין {price_range['min']} ל-{price_range['max']} ליחידה."
+
+
+# משפט הוויתור המכריע בעברית, כולל הסיבה
+def concession_text(data: dict) -> str:
+    """Hebrew sentence saying which concession is decisive and why."""
+    concession = data["decisive_concession"]
+    if concession == "none":
+        return "אף גמישות לא הפכה 'אין עסקה' לעסקה, ואף אחת לא הורידה את המחיר הממוצע ביותר מ-1%."
+    deals = {v: {r["style"] for r in data["simulations"] if r["variant"] == v and r["outcome"] == "deal"}
+             for v in ("base", concession)}
+    converted = [s for s in ("tough", "balanced", "flexible") if s in deals[concession] - deals["base"]]
+    if converted:
+        count = "סימולציה אחת" if len(converted) == 1 else f"{len(converted)} סימולציות"
+        names = ", ".join(STYLE_HE[s] for s in converted)
+        return f"{CONCESSION_HE[concession]} הפכה {count} מ'אין עסקה' לעסקה (מול ספק {names})."
+    means = data["variant_means"]
+    return (f"{CONCESSION_HE[concession]} הורידה את המחיר הממוצע מ-{means['base']} "
+            f"ל-{means[concession]} ליחידה.")
+
+
 # שורות הפער בעברית: כמה חסר בבסיס ומה כל גמישות סוגרת; ריק אם אין פער
 def gap_lines(gap: dict) -> list[str]:
     """Hebrew lines on the price gap (empty when the base variant has no gap)."""
@@ -179,10 +207,7 @@ def build_preview(feasibility: dict, price_range: dict | None, concession: str, 
     """Short Hebrew summary of the findings for the second stop."""
     deals = ", ".join(f"{STYLE_HE[s]}: {'כן' if ok else 'לא'}" for s, ok in feasibility.items())
     lines = [f"עסקה בגרסת הבסיס - {deals}."]
-    if price_range:
-        lines.append(f"טווח המחירים בעסקאות הבסיס: {price_range['min']} עד {price_range['max']} ליחידה.")
-    else:
-        lines.append("לא נסגרה אף עסקה בגרסת הבסיס.")
+    lines.append(price_range_text(price_range))
     lines.append(f"הוויתור המכריע: {CONCESSION_HE[concession]}.")
     if dealbreakers:
         lines.append("מה מנע עסקה: " + "; ".join(f"{REASON_HE[k]} ({v})" for k, v in dealbreakers.items()) + ".")

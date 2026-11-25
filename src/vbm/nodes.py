@@ -4,8 +4,8 @@ import re
 
 from langgraph.types import Send, interrupt
 
-from vbm.analysis import (CONCESSION_HE, REASON_HE, STYLE_HE, VARIANT_HE, analyze_results, current_batch,
-                          gap_lines, patience_text)
+from vbm.analysis import (REASON_HE, STYLE_HE, VARIANT_HE, analyze_results, current_batch,
+                          concession_text, gap_lines, patience_text, price_range_text)
 from vbm.config import MAX_REPORT_ATTEMPTS, MAX_ROUNDS
 from vbm.economics import compute_zopa, round_price, with_variant
 from vbm.llm import get_parser, get_report_writer
@@ -178,12 +178,8 @@ def fallback_report(data: dict) -> str:
     lines.append("## האם אפשר לסגור עסקה")
     for style, ok in data["feasibility"].items():
         lines.append(f"- ספק {STYLE_HE[style]}: {'נסגרה עסקה' if ok else 'לא נסגרה עסקה'} בגרסת הבסיס.")
-    lines += ["", "## טווח מחירים סביר"]
-    if data["price_range"]:
-        lines.append(f"- {data['price_range']['min']} עד {data['price_range']['max']} ליחידה.")
-    else:
-        lines.append("- לא נסגרה אף עסקה בגרסת הבסיס.")
-    lines += ["", "## על מה כדאי להתגמש", f"- {CONCESSION_HE[data['decisive_concession']]}."]
+    lines += ["", "## טווח מחירים סביר", f"- {price_range_text(data['price_range'])}"]
+    lines += ["", "## על מה כדאי להתגמש", f"- {concession_text(data)}"]
     for variant, value in data["variant_means"].items():
         shown = value if value is not None else "אין עסקאות"
         lines.append(f"- מחיר ממוצע בגרסת {VARIANT_HE[variant]}: {shown}.")
