@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from langgraph.types import Command
 
+from vbm.config import PROMPT_VERSION
 from vbm.economics import round_price
 from vbm.graph import build_graph, memory_checkpointer
 
@@ -27,22 +28,24 @@ def sim_summary(result: dict, quantity: int) -> dict:
     }
 
 
-# פונקציית ה-target: מריצה את הגרף על תרחיש, עונה על העצירות לפי המדיניות ומחזירה פלט להערכה
-def target(inputs: dict) -> dict:
-    """Run the main graph on one dataset scenario with the fixed policy; return what the evaluators score."""
-    graph = build_graph(memory_checkpointer())
-    config = {"configurable": {"thread_id": str(uuid4())}}
-    graph.invoke(inputs, config)
-    while interrupts := graph.get_state(config).interrupts:
-        graph.invoke(Command(resume=POLICY[interrupts[0].value["type"]]), config)
-    state = graph.get_state(config).values
-    quantity = state["buyer"]["quantity"]
-    return {
-        "report_data": state["report_data"],
-        "report_ok": state["report_ok"],
-        "report_is_fallback": state["report_is_fallback"],
-        "sims": [sim_summary(r, quantity) for r in state["sim_results"]],
-    }
+# בונה את פונקציית ה-target לגרסת פרומפט: מריצה את הגרף, עונה על העצירות לפי המדיניות ומחזירה פלט להערכה
+def make_target(prompt_version: str = PROMPT_VERSION):
+    """Return target(inputs) that runs the main graph with the given buyer prompt version and the fixed policy."""
+    def target(inputs: dict) -> dict:
+        graph = build_graph(memory_checkpointer())
+        config = {"configurable": {"thread_id": str(uuid4()), "prompt_version": prompt_version}}
+        graph.invoke(inputs, config)
+        while interrupts := graph.get_state(config).interrupts:
+            graph.invoke(Command(resume=POLICY[interrupts[0].value["type"]]), config)
+        state = graph.get_state(config).values
+        quantity = state["buyer"]["quantity"]
+        return {
+            "report_data": state["report_data"],
+            "report_ok": state["report_ok"],
+            "report_is_fallback": state["report_is_fallback"],
+            "sims": [sim_summary(r, quantity) for r in state["sim_results"]],
+        }
+    return target
 
 
 # תוצאה אחת בפורמט של LangSmith; score=None = המדד לא נספר בתרחיש הזה

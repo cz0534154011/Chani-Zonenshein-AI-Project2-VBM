@@ -3,12 +3,13 @@
 import math
 import re
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
-from vbm.config import GUARDRAIL_MAX_RETRIES
+from vbm.config import GUARDRAIL_MAX_RETRIES, PROMPT_VERSION, PROMPT_VERSIONS
 from vbm.economics import allowed_payment_terms, max_allowed_days, round_price, with_variant
 from vbm.llm import get_buyer_decider
-from vbm.prompts.buyer_v1 import build_buyer_prompt
+from vbm.prompts import buyer_v1, buyer_v2
 from vbm.schemas import (
     BuyerDecision, BuyerTerms, Offer, SimResult, TranscriptEntry, validate_buyer_terms, validate_seller_profile,
 )
@@ -118,11 +119,22 @@ def seller_open(state: NegotiationState) -> dict:
             "first_offer": None, "transcript": [entry]}
 
 
+# הפרומפט של הקונה לפי הגרסה שנבחרה ב-config (ברירת מחדל: PROMPT_VERSION)
+def buyer_messages(state: NegotiationState, version: str) -> list:
+    """Build the buyer prompt with v1 or v2; only buyer data, transcript and feedback go in."""
+    if version not in PROMPT_VERSIONS:
+        raise ValueError(f"unknown prompt_version: {version}")
+    if version == "v1":
+        return buyer_v1.build_buyer_prompt(state["buyer"], state["transcript"], state["guardrail_feedback"])
+    return buyer_v2.build_buyer_prompt(state["buyer"], state["transcript"], state["guardrail_feedback"],
+                                       buyer_round(state), state["max_rounds"])
+
+
 # הקונה מחליט: הפרומפט נבנה רק מנתוני הקונה, מהתמליל וממשוב המעקה
-def buyer_decide(state: NegotiationState) -> dict:
+def buyer_decide(state: NegotiationState, config: RunnableConfig) -> dict:
     """Call the buyer model and store its decision (None if the output was invalid)."""
-    messages = build_buyer_prompt(state["buyer"], state["transcript"], state["guardrail_feedback"])
-    return {"pending_decision": get_buyer_decider().invoke(messages)}
+    version = (config.get("configurable") or {}).get("prompt_version", PROMPT_VERSION)
+    return {"pending_decision": get_buyer_decider().invoke(buyer_messages(state, version))}
 
 
 # המעקה: בודק את ההחלטה, מחזיר לתיקון, ואחרי 2 כישלונות מצמיד

@@ -5,8 +5,8 @@ import argparse
 from dotenv import load_dotenv
 
 from vbm.config import (DATASET_CATEGORY_ORDER, DATASET_NAME, EXPERIMENT_MAX_CONCURRENCY, EXPERIMENT_REPETITIONS,
-                        MODELS, TEMPERATURES)
-from vbm.evaluators import EVALUATORS, summary_evaluator, summary_metrics, target
+                        MODELS, PROMPT_VERSION, PROMPT_VERSIONS, TEMPERATURES)
+from vbm.evaluators import EVALUATORS, summary_evaluator, make_target, summary_metrics
 
 
 # ריצת פיתוח: N תרחישים, לפי סבב על הקטגוריות (5 = אחד מכל קטגוריה ועוד "רחב")
@@ -23,9 +23,10 @@ def pick_examples(examples: list, limit: int) -> list:
 
 # קריאת הפרמטרים משורת הפקודה
 def parse_args() -> argparse.Namespace:
-    """--prefix, --reps and --limit (for a short development run)."""
+    """--prefix, --prompt-version, --reps and --limit (for a short development run)."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prefix", default="baseline-v1", help="experiment name prefix in LangSmith")
+    parser.add_argument("--prompt-version", choices=PROMPT_VERSIONS, default=PROMPT_VERSION, help="buyer prompt version")
     parser.add_argument("--reps", type=int, default=EXPERIMENT_REPETITIONS, help="repetitions per scenario")
     parser.add_argument("--limit", type=int, default=None, help="number of scenarios (default: all 18)")
     return parser.parse_args()
@@ -40,12 +41,12 @@ def main() -> None:
     examples = sorted(client.list_examples(dataset_name=DATASET_NAME), key=lambda e: e.inputs["seed"])
     if args.limit:
         examples = pick_examples(examples, args.limit)
-    print(f"{len(examples)} scenarios x {args.reps} repetitions = {len(examples) * args.reps} runs "
+    print(f"prompt {args.prompt_version}: {len(examples)} scenarios x {args.reps} repetitions = {len(examples) * args.reps} runs "
           f"({len(examples) * args.reps * 9} simulations).")
     results = client.evaluate(
-        target, data=examples, evaluators=EVALUATORS, summary_evaluators=[summary_evaluator],
+        make_target(args.prompt_version), data=examples, evaluators=EVALUATORS, summary_evaluators=[summary_evaluator],
         experiment_prefix=args.prefix, num_repetitions=args.reps, max_concurrency=EXPERIMENT_MAX_CONCURRENCY,
-        metadata={"prompt_version": "v1", "buyer_model": MODELS["buyer"], "buyer_temperature": TEMPERATURES["buyer"],
+        metadata={"prompt_version": args.prompt_version, "buyer_model": MODELS["buyer"], "buyer_temperature": TEMPERATURES["buyer"],
                   "report_model": MODELS["report"], "dataset": DATASET_NAME},
     )
     rows = list(results)

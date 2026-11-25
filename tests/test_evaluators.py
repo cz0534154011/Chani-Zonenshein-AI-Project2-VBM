@@ -7,7 +7,7 @@ import vbm.subgraph
 from vbm.evaluators import (
     EVALUATORS, accepted_opening_rate, budget_violation, close_rate, decisive_concession_correct,
     feasibility_correct, first_offer_position, guardrail_hits, price_score, report_numbers_match,
-    summary_evaluator, summary_metrics, target,
+    make_target, summary_evaluator, summary_metrics,
 )
 from vbm.schemas import BuyerDecision, Offer
 
@@ -119,7 +119,7 @@ def test_target_runs_the_graph_with_the_fixed_policy(monkeypatch):
                         "deadline_days": 30, "preferred_days": 30, "preferred_terms": "net60", "flexible_on": []},
               "seller_profiles": {"list_price": 480, "min_price": 330, "standard_days": 21, "min_days": 14},
               "max_rounds": 8, "seed": 7}
-    out = target(inputs)
+    out = make_target("v1")(inputs)
     assert set(out) == {"report_data", "report_ok", "report_is_fallback", "sims"}
     assert len(out["sims"]) == 9 and out["report_ok"]
     assert all("transcript" not in s for s in out["sims"])

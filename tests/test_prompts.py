@@ -4,10 +4,13 @@ import inspect
 import json
 import re
 
+import pytest
+
 import vbm.subgraph
 from vbm.analysis import analyze_results
 from vbm.economics import seller_floor
 from vbm.nodes import numbers_in_text, unverified_numbers
+from vbm.prompts import buyer_v2
 from vbm.prompts.buyer_v1 import build_buyer_prompt
 from vbm.prompts.report import build_report_prompt
 from vbm.scenario_generator import profile_for_style
@@ -36,12 +39,17 @@ class RecordingBuyer:
                              message=f"I can offer 400 per unit, delivery in {self.days} days, net 60.")
 
 
-def prompt_numbers(monkeypatch, days, style="tough", variant="base"):
+def recorded_prompts(monkeypatch, days, style="tough", variant="base", version="v1"):
     buyer = RecordingBuyer(days)
     monkeypatch.setattr(vbm.subgraph, "get_buyer_decider", lambda: buyer)
     subgraph.invoke({"buyer": BUYER, "seller": profile_for_style(SECRET, style), "variant": variant,
-                     "batch_id": 1, "max_rounds": 8})
-    return {float(t.replace(",", "")) for p in buyer.prompts for t in numbers_in_text(p)}
+                     "batch_id": 1, "max_rounds": 8}, {"configurable": {"prompt_version": version}})
+    return buyer.prompts
+
+
+def prompt_numbers(monkeypatch, days, style="tough", variant="base", version="v1"):
+    prompts = recorded_prompts(monkeypatch, days, style, variant, version)
+    return {float(t.replace(",", "")) for p in prompts for t in numbers_in_text(p)}
 
 
 def all_floors() -> set[float]:
@@ -53,17 +61,48 @@ def test_buyer_prompt_takes_only_buyer_data():
     assert list(inspect.signature(build_buyer_prompt).parameters) == ["buyer", "transcript", "guardrail_feedback"]
 
 
+def test_buyer_prompt_v2_takes_only_buyer_data_and_the_round():
+    assert list(inspect.signature(buyer_v2.build_buyer_prompt).parameters) == [
+        "buyer", "transcript", "guardrail_feedback", "round_no", "max_rounds"]
+
+
 def test_min_price_and_floors_never_reach_the_buyer(monkeypatch):
-    for style in ("tough", "balanced", "flexible"):
-        for variant in ("base", "payment", "delivery"):
-            seen = prompt_numbers(monkeypatch, 30, style, variant)
-            assert not seen & all_floors(), (style, variant)
+    for version in ("v1", "v2"):
+        for style in ("tough", "balanced", "flexible"):
+            for variant in ("base", "payment", "delivery"):
+                seen = prompt_numbers(monkeypatch, 30, style, variant, version)
+                assert not seen & all_floors(), (version, style, variant)
 
 
 def test_min_days_hidden_unless_the_buyer_asks_too_fast(monkeypatch):
-    assert 13.0 not in prompt_numbers(monkeypatch, 30)
-    # כלל 1 של הספק: בקשה מהירה מדי חושפת את המועד המינימלי בכוונה
-    assert 13.0 in prompt_numbers(monkeypatch, 10)
+    for version in ("v1", "v2"):
+        assert 13.0 not in prompt_numbers(monkeypatch, 30, version=version)
+        # כלל 1 של הספק: בקשה מהירה מדי חושפת את המועד המינימלי בכוונה
+        assert 13.0 in prompt_numbers(monkeypatch, 10, version=version)
+
+
+def test_prompt_version_selects_the_prompt(monkeypatch):
+    v1 = recorded_prompts(monkeypatch, 30)
+    v2 = recorded_prompts(monkeypatch, 30, version="v2")
+    assert "Strategy:" not in v1[0] and "Strategy:" in v2[0]
+    assert "This is round 1 of 8" in v2[0] and "Allowed offer range this round (per unit): 288.0 to 320.0." in v2[0]
+    with pytest.raises(ValueError):
+        recorded_prompts(monkeypatch, 30, version="v3")
+
+
+def entry(speaker, price):
+    return {"round": 1, "speaker": speaker, "message": "", "message_he": None, "rationale": None,
+            "offers": [Offer(unit_price=price, delivery_days=30, payment_terms="net60")]}
+
+
+def test_offer_range_opens_at_target_then_moves_a_quarter_of_the_gap():
+    assert buyer_v2.offer_range(BUYER, [entry("seller", 480)]) == (288.0, 320.0)
+    history = [entry("seller", 480), entry("buyer", 300), entry("seller", 400)]
+    assert buyer_v2.offer_range(BUYER, history) == (300, 325.0)
+    # הספק מעל התקרה: הפער נמדד עד התקרה (420), לא עד ההצעה שלו
+    assert buyer_v2.offer_range(BUYER, history[:2] + [entry("seller", 470)]) == (300, 330.0)
+    # הספק כבר הגיע להצעה של הקונה: אין מה לוותר
+    assert buyer_v2.offer_range(BUYER, history[:2] + [entry("seller", 300)]) == (300, 300)
 
 
 def sim(style, variant, price, lowest, reason=None):
