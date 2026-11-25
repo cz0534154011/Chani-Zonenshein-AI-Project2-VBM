@@ -4,9 +4,10 @@ import argparse
 
 from dotenv import load_dotenv
 
-from vbm.config import (DATASET_CATEGORY_ORDER, DATASET_NAME, EXPERIMENT_MAX_CONCURRENCY, EXPERIMENT_REPETITIONS,
-                        MODELS, PROMPT_VERSION, PROMPT_VERSIONS, TEMPERATURES)
-from vbm.evaluators import EVALUATORS, summary_evaluator, make_target, summary_metrics
+from vbm.adapters.prompts import PROMPT_VERSIONS
+from vbm.infrastructure.evaluation.evaluators import EVALUATORS, summary_evaluator, make_target, summary_metrics
+from vbm.infrastructure.settings import (DATASET_CATEGORY_ORDER, DATASET_NAME, EXPERIMENT_MAX_CONCURRENCY,
+                                        EXPERIMENT_REPETITIONS, MODELS, PROMPT_VERSION, TEMPERATURES)
 
 
 # ריצת פיתוח: N תרחישים, לפי סבב על הקטגוריות (5 = אחד מכל קטגוריה ועוד "רחב")

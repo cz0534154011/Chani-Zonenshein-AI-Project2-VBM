@@ -11,10 +11,10 @@
 
 | דרישה | איך היא מתקיימת | איפה בקוד |
 |---|---|---|
-| 1. שימוש ב-LangGraph | גרף ראשי ותת-גרף של משא ומתן אחד, 9 הרצות מקבילות של תת-הגרף דרך `Send`, ו-checkpointer ששומר את המצב בין העצירות | `src/vbm/graph.py`, `src/vbm/subgraph.py` |
+| 1. שימוש ב-LangGraph | גרף ראשי ותת-גרף של משא ומתן אחד, 9 הרצות מקבילות של תת-הגרף דרך `Send`, ו-checkpointer ששומר את המצב בין העצירות | `src/vbm/infrastructure/workflow/graph.py`, `subgraph.py` |
 | 2. לולאה או ענף מותנה | שתי לולאות: סבבי המיקוח בתת-הגרף, ולולאת "מה אם" בגרף הראשי. ענפים מותנים אחרי הקונה, אחרי המעקה, אחרי הספק, אחרי כל עצירה ואחרי אימות הדוח | פונקציות `route_*` ב-`nodes.py` וב-`subgraph.py` |
 | 3. interrupt ו-human-in-the-loop | עצירה 1: אישור או תיקון של פענוח הבקשה. עצירה 2: בחירה בין דוח, שינוי עמדה ושינוי הנחות על הספק | `confirm_terms`, `findings_review` ב-`nodes.py` |
-| 4. דאטהסט והערכה אוטומטית ב-LangSmith, לפני ואחרי שיפור | 18 תרחישים עם תשובה ידועה, 9 מעריכים בקוד, ניסוי baseline (פעמיים, למדידת הרעש) מול ניסוי אחרי שיפור הפרומפט | `src/vbm/evaluators.py`, `scripts/run_experiment.py` |
+| 4. דאטהסט והערכה אוטומטית ב-LangSmith, לפני ואחרי שיפור | 18 תרחישים עם תשובה ידועה, 9 מעריכים בקוד, ניסוי baseline (פעמיים, למדידת הרעש) מול ניסוי אחרי שיפור הפרומפט | `src/vbm/infrastructure/evaluation/evaluators.py`, `scripts/run_experiment.py` |
 | 5. README עם צילומי trace ותובנה | שני צילומי trace, צילום של השוואת הניסויים, ותובנה אחת שהובילה לשינוי שנמדד | הקובץ הזה, `docs/images/` |
 
 ## הגרף
@@ -182,8 +182,13 @@ copy .env.example .env          # then fill in OPENAI_API_KEY and LANGSMITH_API_
 
 ## מבנה התיקיות
 
+הקוד בנוי לפי clean architecture: ארבע שכבות, וכל import מצביע פנימה בלבד (infrastructure -> adapters -> application -> domain). הלוגיקה העסקית לא מכירה את OpenAI, את LangGraph או את LangSmith, והמודלים מוזרקים לגרף דרך ports.
+
 ```
-src/vbm/     graph, subgraph, nodes, analysis, seller_sim, evaluators, prompts/ (buyer_v1, buyer_v2, parser, report)
+src/vbm/domain/          entities and business rules: schemas, economics, seller_sim, scenario_generator, rules
+src/vbm/application/     use cases and ports: analysis, negotiation, meeting_prep, numbers, ports, dto, policy
+src/vbm/adapters/        texts (Hebrew/English), prompts/ (buyer_v1, buyer_v2, parser, report, translate), llm_gateways, display
+src/vbm/infrastructure/  OpenAI (llm), wiring, settings, reports, workflow/ (LangGraph: graph, subgraph, nodes, state), evaluation/ (LangSmith)
 scripts/     run_cli, run_experiment, compare_experiments, inspect_experiment, create_dataset, draw_graph
 app/         streamlit_app.py
 data/        dataset.json (18 scenarios, frozen)

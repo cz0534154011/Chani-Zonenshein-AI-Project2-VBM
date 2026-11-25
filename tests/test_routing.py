@@ -2,9 +2,10 @@
 
 import pytest
 
-from vbm.schemas import BuyerDecision, Offer
-from vbm.nodes import route_after_confirm, route_after_review, route_after_verify, route_start
-from vbm.subgraph import route_after_buyer, route_after_guardrail, route_after_seller
+from vbm.application.dto import BuyerDecision
+from vbm.domain.schemas import Offer
+from vbm.infrastructure.workflow.nodes import route_after_confirm, route_after_review, route_after_verify, route_start
+from vbm.infrastructure.workflow.subgraph import route_after_buyer, route_after_guardrail, route_after_seller
 
 OFFER = Offer(unit_price=400, delivery_days=30, payment_terms="net60")
 

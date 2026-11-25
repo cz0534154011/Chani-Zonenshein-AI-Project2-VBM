@@ -5,8 +5,8 @@ from collections import Counter
 
 from dotenv import load_dotenv
 
-from vbm.config import DATASET_NAME
-from vbm.evaluators import price_score
+from vbm.infrastructure.evaluation.evaluators import price_score
+from vbm.infrastructure.settings import DATASET_NAME
 
 
 # ערך של שדה בהצעה, גם כשההצעה נשמרה כמילון וגם כאובייקט

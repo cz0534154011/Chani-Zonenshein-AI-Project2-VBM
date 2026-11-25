@@ -1,15 +1,18 @@
 """Tests for the evaluation target and the code evaluators (fake models, no LangSmith)."""
 
+from dataclasses import replace
+
 import pytest
 
-import vbm.nodes
-import vbm.subgraph
-from vbm.evaluators import (
+from vbm.adapters.llm_gateways import LLMBuyerDecider, LLMReportWriter
+from vbm.application.dto import BuyerDecision
+from vbm.domain.schemas import Offer
+from vbm.infrastructure.evaluation.evaluators import (
     EVALUATORS, accepted_opening_rate, budget_violation, close_rate, decisive_concession_correct,
     feasibility_correct, first_offer_position, guardrail_hits, price_score, report_numbers_match,
     make_target, summary_evaluator, summary_metrics,
 )
-from vbm.schemas import BuyerDecision, Offer
+from vbm.infrastructure.wiring import default_ports
 
 WIDE = {"zopa_exists": True, "zopa_low": 300.0, "zopa_high": 400.0, "decisive_concession": "none", "category": "wide"}
 NO_ZOPA = {"zopa_exists": False, "zopa_low": 450.0, "zopa_high": 400.0, "decisive_concession": "payment",
@@ -112,14 +115,14 @@ class SteadyBuyer:
                              rationale="scripted")
 
 
-def test_target_runs_the_graph_with_the_fixed_policy(monkeypatch):
-    monkeypatch.setattr(vbm.nodes, "get_report_writer", lambda: Fixed())
-    monkeypatch.setattr(vbm.subgraph, "get_buyer_decider", lambda: SteadyBuyer())
+def test_target_runs_the_graph_with_the_fixed_policy():
+    ports = replace(default_ports(), report_writer=LLMReportWriter(lambda: Fixed()),
+                    buyer_decider=LLMBuyerDecider(lambda: SteadyBuyer()))
     inputs = {"buyer": {"product": "office chair", "quantity": 500, "max_budget_total": 210000, "target_total": 160000,
                         "deadline_days": 30, "preferred_days": 30, "preferred_terms": "net60", "flexible_on": []},
               "seller_profiles": {"list_price": 480, "min_price": 330, "standard_days": 21, "min_days": 14},
               "max_rounds": 8, "seed": 7}
-    out = make_target("v1")(inputs)
+    out = make_target("v1", ports)(inputs)
     assert set(out) == {"report_data", "report_ok", "report_is_fallback", "sims"}
     assert len(out["sims"]) == 9 and out["report_ok"]
     assert all("transcript" not in s for s in out["sims"])

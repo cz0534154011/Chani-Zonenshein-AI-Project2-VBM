@@ -3,7 +3,8 @@
 import operator
 from typing import Annotated, Literal, TypedDict
 
-from vbm.schemas import BuyerDecision, BuyerTerms, Offer, SellerProfile, SimResult, TranscriptEntry, Variant
+from vbm.application.dto import BuyerDecision
+from vbm.domain.schemas import BuyerTerms, Offer, SellerProfile, SimResult, TranscriptEntry, Variant
 
 
 # הקלט של תת-הגרף: מה ש-plan_simulations שולח לכל סימולציה

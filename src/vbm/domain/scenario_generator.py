@@ -2,15 +2,15 @@
 
 import random
 
-from vbm.config import (
+from vbm.domain.economics import round_price
+from vbm.domain.rules import (
     LIST_PRICE_FACTOR_RANGE,
     MIN_DAYS_FLOOR,
     MIN_DAYS_GAP_RANGE,
     MIN_PRICE_FACTOR_RANGE,
     STANDARD_DAYS_RANGE,
 )
-from vbm.economics import round_price
-from vbm.schemas import BuyerTerms, SellerProfile, SellerStyle, validate_seller_profile
+from vbm.domain.schemas import BuyerTerms, SellerProfile, SellerStyle, validate_seller_profile
 
 STYLES: tuple[SellerStyle, ...] = ("tough", "balanced", "flexible")
 

@@ -7,9 +7,9 @@ import streamlit as st
 from dotenv import load_dotenv
 from langgraph.types import Command
 
-from vbm.analysis import STYLE_HE, VARIANT_HE
-from vbm.display import BUYER_LABELS, SELLER_LABELS, outcome_he, result_line, save_report, transcript_he
-from vbm.seller_sim import TERMS_HE
+from vbm.adapters.display import BUYER_LABELS, SELLER_LABELS, outcome_he, result_line, transcript_he
+from vbm.adapters.texts import STYLE_HE, TERMS_HE, VARIANT_HE
+from vbm.infrastructure.reports import save_report
 
 RTL_CSS = """
 <style>
@@ -24,7 +24,7 @@ TERMS_OPTIONS = {TERMS_HE[k]: k for k in ("advance", "net30", "net60")}
 # יצירת הגרף ומזהה שיחה חדש בתחילת כל ריצה
 def new_session() -> None:
     """Reset the session: a fresh graph with its own checkpointer and thread id."""
-    from vbm.graph import build_graph, memory_checkpointer
+    from vbm.infrastructure.workflow.graph import build_graph, memory_checkpointer
     st.session_state.graph = build_graph(memory_checkpointer())
     st.session_state.config = {"configurable": {"thread_id": str(uuid.uuid4())}}
     st.session_state.stage = "input"
@@ -124,8 +124,9 @@ def transcript_viewer(results: list[dict]) -> None:
     result = results[labels.index(choice)]
     key = (result["batch_id"], result["style"], result["variant"])
     if key not in st.session_state.translations:
+        from vbm.infrastructure.wiring import default_translator
         with st.spinner("מתרגם את ההודעות של הקונה..."):
-            st.session_state.translations[key] = transcript_he(result)
+            st.session_state.translations[key] = transcript_he(result, default_translator())
     for row in st.session_state.translations[key]:
         with st.chat_message("assistant" if row["speaker"] == "הספק" else "user"):
             st.markdown(f"**סבב {row['round']} - {row['speaker']}:** {row['text']}")

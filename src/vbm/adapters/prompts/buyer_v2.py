@@ -4,9 +4,9 @@ import math
 
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
-from vbm.economics import allowed_payment_terms, max_allowed_days, round_price
-from vbm.schemas import BuyerTerms, TranscriptEntry
-from vbm.seller_sim import TERMS_EN
+from vbm.adapters.texts import TERMS_EN
+from vbm.domain.economics import allowed_payment_terms, max_allowed_days, round_price
+from vbm.domain.schemas import BuyerTerms, TranscriptEntry
 
 # חלק הפער הנותר שמותר לוותר עליו בסבב אחד, וגבול תחתון להצעת הפתיחה (x היעד ליחידה)
 MAX_CONCESSION_SHARE = 0.25

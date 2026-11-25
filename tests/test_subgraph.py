@@ -2,10 +2,11 @@
 
 import pytest
 
-import vbm.subgraph
-from vbm.scenario_generator import profile_for_style
-from vbm.schemas import BuyerDecision, Offer
-from vbm.subgraph import subgraph
+from vbm.adapters.llm_gateways import LLMBuyerDecider
+from vbm.application.dto import BuyerDecision
+from vbm.domain.scenario_generator import profile_for_style
+from vbm.domain.schemas import Offer
+from vbm.infrastructure.workflow.subgraph import build_subgraph
 
 LIMITS = {"list_price": 480, "min_price": 330, "standard_days": 21, "min_days": 14}
 BUYER = {"product": "office chair", "quantity": 500, "max_budget_total": 210000,
@@ -34,18 +35,18 @@ def walk_away():
     return BuyerDecision(action="walk_away", offer=None, message="No deal, thank you.", rationale="scripted")
 
 
-def run(decisions, style="balanced", limits=LIMITS, monkeypatch=None):
+def run(decisions, style="balanced", limits=LIMITS):
     buyer = ScriptedBuyer(decisions)
-    monkeypatch.setattr(vbm.subgraph, "get_buyer_decider", lambda: buyer)
+    subgraph = build_subgraph(LLMBuyerDecider(lambda: buyer))
     inputs = {"buyer": BUYER, "seller": profile_for_style(limits, style), "variant": "base",
               "batch_id": 1, "max_rounds": 8}
     result = subgraph.invoke(inputs)["sim_results"][0]
     return result, buyer
 
 
-def test_deal_when_offer_reaches_the_ask(monkeypatch):
+def test_deal_when_offer_reaches_the_ask():
     prices = [350, 360, 370, 380, 390, 400, 410, 420]
-    result, _ = run([counter(p) for p in prices], monkeypatch=monkeypatch)
+    result, _ = run([counter(p) for p in prices])
     assert result["outcome"] == "deal"
     assert result["final"].unit_price == 400 and result["rounds"] == 6
     assert result["first_offer"].unit_price == 350 and not result["accepted_opening"]
@@ -54,10 +55,10 @@ def test_deal_when_offer_reaches_the_ask(monkeypatch):
     assert speakers[0] == "seller" and len(speakers) == 13  # opening + 6 x (buyer, seller)
 
 
-def test_accept_over_budget_is_retried_then_clamped(monkeypatch):
+def test_accept_over_budget_is_retried_then_clamped():
     opening = Offer(unit_price=480, delivery_days=21, payment_terms="advance")
     accept = BuyerDecision(action="accept", offer=opening, message="Deal.", rationale="scripted")
-    result, buyer = run([accept, accept, accept, walk_away()], monkeypatch=monkeypatch)
+    result, buyer = run([accept, accept, accept, walk_away()])
     assert buyer.calls == 4
     assert result["guardrail_hits"] == 3
     clamped = result["transcript"][1]["offers"][0]
@@ -65,34 +66,34 @@ def test_accept_over_budget_is_retried_then_clamped(monkeypatch):
     assert result["outcome"] == "no_deal" and result["no_deal_reason"] == "buyer_walk_away"
 
 
-def test_final_turn_counter_becomes_walk_away(monkeypatch):
+def test_final_turn_counter_becomes_walk_away():
     decisions = [counter(300) for _ in range(8)] + [counter(300)] * 3
-    result, buyer = run(decisions, monkeypatch=monkeypatch)
+    result, buyer = run(decisions)
     assert buyer.calls == 11 and result["rounds"] == 8
     assert result["outcome"] == "no_deal" and result["no_deal_reason"] == "max_rounds"
     assert result["guardrail_hits"] == 3
 
 
-def test_seller_quits_after_three_low_offers(monkeypatch):
-    result, _ = run([counter(100)] * 3, monkeypatch=monkeypatch)
+def test_seller_quits_after_three_low_offers():
+    result, _ = run([counter(100)] * 3)
     assert result["outcome"] == "no_deal" and result["no_deal_reason"] == "seller_quit"
 
 
-def test_delivery_impossible_takes_precedence(monkeypatch):
+def test_delivery_impossible_takes_precedence():
     slow = {**LIMITS, "standard_days": 40, "min_days": 35}
-    result, _ = run([walk_away()], limits=slow, monkeypatch=monkeypatch)
+    result, _ = run([walk_away()], limits=slow)
     assert result["no_deal_reason"] == "delivery_impossible"
 
 
-def test_message_numbers_must_match_offer(monkeypatch):
+def test_message_numbers_must_match_offer():
     wrong = counter(350, message="I can offer 340 per unit, delivery in 30 days, net 60.")
-    result, buyer = run([wrong, counter(350), walk_away()], monkeypatch=monkeypatch)
+    result, buyer = run([wrong, counter(350), walk_away()])
     assert result["message_mismatch"] == 1 and result["guardrail_hits"] == 1
     assert buyer.calls == 3
 
 
 @pytest.mark.parametrize("style", ["tough", "balanced", "flexible"])
-def test_every_style_closes_within_budget(style, monkeypatch):
-    result, _ = run([counter(420)] * 9, style=style, monkeypatch=monkeypatch)
+def test_every_style_closes_within_budget(style):
+    result, _ = run([counter(420)] * 9, style=style)
     assert result["outcome"] == "deal"
     assert result["final"].unit_price * BUYER["quantity"] <= BUYER["max_budget_total"]

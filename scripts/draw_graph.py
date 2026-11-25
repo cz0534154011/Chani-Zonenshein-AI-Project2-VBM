@@ -1,6 +1,6 @@
 """Print the main graph, with the negotiation subgraph inside it, as a Mermaid diagram for the README (no model calls, no network)."""
 
-from vbm.graph import graph
+from vbm.infrastructure.workflow.graph import graph
 
 
 # הדפסת תרשים הגרף הראשי, כולל תת-הגרף, כבלוק Mermaid להעתקה ל-README

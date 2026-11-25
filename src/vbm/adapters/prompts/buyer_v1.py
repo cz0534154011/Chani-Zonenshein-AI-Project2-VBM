@@ -2,9 +2,9 @@
 
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
-from vbm.economics import allowed_payment_terms, max_allowed_days
-from vbm.schemas import BuyerTerms, TranscriptEntry
-from vbm.seller_sim import TERMS_EN
+from vbm.adapters.texts import TERMS_EN
+from vbm.domain.economics import allowed_payment_terms, max_allowed_days
+from vbm.domain.schemas import BuyerTerms, TranscriptEntry
 
 
 # בניית הפרומפט של הקונה מנתוני הקונה, מהתמליל וממשוב המעקה בלבד

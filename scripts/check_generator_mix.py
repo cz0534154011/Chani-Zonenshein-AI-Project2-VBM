@@ -2,9 +2,9 @@
 
 from collections import Counter
 
-from vbm.economics import classify_zopa, compute_zopa
-from vbm.scenario_generator import generate_limits, profile_for_style
-from vbm.schemas import validate_buyer_terms
+from vbm.domain.economics import classify_zopa, compute_zopa
+from vbm.domain.scenario_generator import generate_limits, profile_for_style
+from vbm.domain.schemas import validate_buyer_terms
 
 SEEDS = 1000
 

@@ -4,9 +4,8 @@ import json
 
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
-from vbm.analysis import (REASON_HE, STYLE_HE, VARIANT_HE, concession_text, gap_lines, patience_text,
-                          price_range_text)
-from vbm.seller_sim import TERMS_HE
+from vbm.adapters.texts import (REASON_HE, STYLE_HE, TERMS_HE, VARIANT_HE, concession_text, gap_lines,
+                                patience_text, price_range_text)
 
 SYSTEM = """You write a short meeting-preparation report in Hebrew, in Markdown, for a business owner
 who is about to meet a supplier. Use ONLY the data you are given; it is already in Hebrew.

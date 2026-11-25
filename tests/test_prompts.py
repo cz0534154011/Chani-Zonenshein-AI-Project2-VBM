@@ -6,16 +6,17 @@ import re
 
 import pytest
 
-import vbm.subgraph
-from vbm.analysis import analyze_results
-from vbm.economics import seller_floor
-from vbm.nodes import numbers_in_text, unverified_numbers
-from vbm.prompts import buyer_v2
-from vbm.prompts.buyer_v1 import build_buyer_prompt
-from vbm.prompts.report import build_report_prompt
-from vbm.scenario_generator import profile_for_style
-from vbm.schemas import BuyerDecision, Offer
-from vbm.subgraph import subgraph
+from vbm.adapters.llm_gateways import LLMBuyerDecider
+from vbm.adapters.prompts import buyer_v2
+from vbm.adapters.prompts.buyer_v1 import build_buyer_prompt
+from vbm.adapters.prompts.report import build_report_prompt
+from vbm.application.analysis import analyze_results
+from vbm.application.dto import BuyerDecision
+from vbm.application.numbers import numbers_in_text, unverified_numbers
+from vbm.domain.economics import seller_floor
+from vbm.domain.scenario_generator import profile_for_style
+from vbm.domain.schemas import Offer
+from vbm.infrastructure.workflow.subgraph import build_subgraph
 
 # מספרים ייחודיים שלא יכולים להופיע בפרומפט במקרה
 SECRET = {"list_price": 487.0, "min_price": 333.37, "standard_days": 21, "min_days": 13}
@@ -39,16 +40,16 @@ class RecordingBuyer:
                              message=f"I can offer 400 per unit, delivery in {self.days} days, net 60.")
 
 
-def recorded_prompts(monkeypatch, days, style="tough", variant="base", version="v1"):
+def recorded_prompts(days, style="tough", variant="base", version="v1"):
     buyer = RecordingBuyer(days)
-    monkeypatch.setattr(vbm.subgraph, "get_buyer_decider", lambda: buyer)
+    subgraph = build_subgraph(LLMBuyerDecider(lambda: buyer))
     subgraph.invoke({"buyer": BUYER, "seller": profile_for_style(SECRET, style), "variant": variant,
                      "batch_id": 1, "max_rounds": 8}, {"configurable": {"prompt_version": version}})
     return buyer.prompts
 
 
-def prompt_numbers(monkeypatch, days, style="tough", variant="base", version="v1"):
-    prompts = recorded_prompts(monkeypatch, days, style, variant, version)
+def prompt_numbers(days, style="tough", variant="base", version="v1"):
+    prompts = recorded_prompts(days, style, variant, version)
     return {float(t.replace(",", "")) for p in prompts for t in numbers_in_text(p)}
 
 
@@ -66,28 +67,28 @@ def test_buyer_prompt_v2_takes_only_buyer_data_and_the_round():
         "buyer", "transcript", "guardrail_feedback", "round_no", "max_rounds"]
 
 
-def test_min_price_and_floors_never_reach_the_buyer(monkeypatch):
+def test_min_price_and_floors_never_reach_the_buyer():
     for version in ("v1", "v2"):
         for style in ("tough", "balanced", "flexible"):
             for variant in ("base", "payment", "delivery"):
-                seen = prompt_numbers(monkeypatch, 30, style, variant, version)
+                seen = prompt_numbers(30, style, variant, version)
                 assert not seen & all_floors(), (version, style, variant)
 
 
-def test_min_days_hidden_unless_the_buyer_asks_too_fast(monkeypatch):
+def test_min_days_hidden_unless_the_buyer_asks_too_fast():
     for version in ("v1", "v2"):
-        assert 13.0 not in prompt_numbers(monkeypatch, 30, version=version)
+        assert 13.0 not in prompt_numbers(30, version=version)
         # כלל 1 של הספק: בקשה מהירה מדי חושפת את המועד המינימלי בכוונה
-        assert 13.0 in prompt_numbers(monkeypatch, 10, version=version)
+        assert 13.0 in prompt_numbers(10, version=version)
 
 
-def test_prompt_version_selects_the_prompt(monkeypatch):
-    v1 = recorded_prompts(monkeypatch, 30)
-    v2 = recorded_prompts(monkeypatch, 30, version="v2")
+def test_prompt_version_selects_the_prompt():
+    v1 = recorded_prompts(30)
+    v2 = recorded_prompts(30, version="v2")
     assert "Strategy:" not in v1[0] and "Strategy:" in v2[0]
     assert "This is round 1 of 8" in v2[0] and "Allowed offer range this round (per unit): 288.0 to 320.0." in v2[0]
     with pytest.raises(ValueError):
-        recorded_prompts(monkeypatch, 30, version="v3")
+        recorded_prompts(30, version="v3")
 
 
 def entry(speaker, price):

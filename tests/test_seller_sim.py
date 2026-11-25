@@ -1,11 +1,12 @@
-"""Tests for the simulated supplier (vbm.seller_sim) and the generator (vbm.scenario_generator)."""
+"""Tests for the simulated supplier (vbm.domain.seller_sim), its texts (vbm.adapters.texts) and the generator."""
 
 import pytest
 
-from vbm.economics import seller_floor
-from vbm.scenario_generator import generate_limits, profile_for_style, profiles_for_all_styles
-from vbm.schemas import Offer, validate_buyer_terms
-from vbm.seller_sim import ask_price, opening_offer, respond
+from vbm.adapters.texts import seller_message
+from vbm.domain.economics import seller_floor
+from vbm.domain.scenario_generator import generate_limits, profile_for_style, profiles_for_all_styles
+from vbm.domain.schemas import Offer, validate_buyer_terms
+from vbm.domain.seller_sim import ask_price, opening_offer, respond
 
 LIMITS = {"list_price": 480, "min_price": 330, "standard_days": 21, "min_days": 14}
 T = 8
@@ -92,14 +93,15 @@ def test_deterministic():
 
 
 def test_final_round_message():
-    assert "final offer" in respond(seller(), offer(300), 8, T, 0)["message_en"]
+    en, _ = seller_message(respond(seller(), offer(300), 8, T, 0), offer(300), seller(), 8, T)
+    assert "final offer" in en
 
 
 def test_messages_never_reveal_floor():
     s = profile_for_style({"list_price": 487.0, "min_price": 333.37, "standard_days": 21, "min_days": 13}, "tough")
     for t in range(1, T):
-        r = respond(s, offer(250), t, T, 0)
-        assert "333.37" not in r["message_en"] and "333.37" not in r["message_he"]
+        en, he = seller_message(respond(s, offer(250), t, T, 0), offer(250), s, t, T)
+        assert "333.37" not in en and "333.37" not in he
 
 
 # 9. מחולל הספקים

@@ -2,10 +2,10 @@
 
 from collections import Counter
 
-from vbm.config import DATASET_QUOTAS
-from vbm.dataset import analytic_concession, build_dataset, build_example
-from vbm.economics import classify_zopa, compute_zopa
-from vbm.scenario_generator import profile_for_style
+from vbm.domain.economics import classify_zopa, compute_zopa
+from vbm.domain.scenario_generator import profile_for_style
+from vbm.infrastructure.evaluation.dataset import analytic_concession, build_dataset, build_example
+from vbm.infrastructure.settings import DATASET_QUOTAS
 
 
 def test_mix_matches_the_quotas():

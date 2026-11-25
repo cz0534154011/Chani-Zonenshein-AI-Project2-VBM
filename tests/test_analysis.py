@@ -1,9 +1,10 @@
-"""Tests for vbm.analysis (ReportData) and the report number check in vbm.nodes."""
+"""Tests for vbm.application.analysis (ReportData), the report texts and the report number check."""
 
-from vbm.analysis import (analyze_results, current_batch, decisive_concession, lowest_allowed_offer,
-                          concession_text, patience_round, patience_text, price_gap, price_range_text)
-from vbm.nodes import fallback_report, unverified_numbers
-from vbm.schemas import Offer
+from vbm.adapters.texts import build_preview, concession_text, fallback_report, patience_text, price_range_text
+from vbm.application.analysis import (analyze_results, current_batch, decisive_concession, lowest_allowed_offer,
+                                      patience_round, price_gap)
+from vbm.application.numbers import unverified_numbers
+from vbm.domain.schemas import Offer
 
 BUYER = {"product": "office chair", "quantity": 500, "max_budget_total": 210000,
          "target_total": 160000, "deadline_days": 30, "preferred_days": 30, "preferred_terms": "net60"}
@@ -83,7 +84,7 @@ def test_price_gap_per_variant():
     assert gap["variants"]["payment"]["gap_per_unit"] == 10 and not gap["variants"]["payment"]["closes"]
     assert gap["variants"]["delivery"]["closes"]
     data = analyze_results(results, BUYER)
-    assert "220000" in data["preview"] and "סוגרת את הפער" in data["preview"]
+    assert "220000" in build_preview(data) and "סוגרת את הפער" in build_preview(data)
     assert unverified_numbers(fallback_report(data), data) == []
     assert "## מה יסגור את הפער" in fallback_report(data)
 

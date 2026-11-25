@@ -1,10 +1,11 @@
-"""Tests for vbm.economics and the validation helpers in vbm.schemas."""
+"""Tests for vbm.domain.economics and the validation helpers in vbm.domain.schemas and vbm.application.dto."""
 
 import pytest
 from pydantic import ValidationError
 
-from vbm.economics import compute_zopa, seller_floor, with_variant
-from vbm.schemas import BuyerDecision, validate_buyer_terms
+from vbm.application.dto import BuyerDecision
+from vbm.domain.economics import compute_zopa, seller_floor, with_variant
+from vbm.domain.schemas import validate_buyer_terms
 
 SELLER = {"list_price": 480, "min_price": 330, "standard_days": 21, "min_days": 14, "style": "balanced"}
 

@@ -7,9 +7,9 @@ import uuid
 from dotenv import load_dotenv
 from langgraph.types import Command
 
-from vbm.analysis import REASON_HE, STYLE_HE, VARIANT_HE
-from vbm.display import BUYER_LABELS, SELLER_LABELS, offer_he, result_line, save_report, transcript_he
-from vbm.seller_sim import TERMS_HE
+from vbm.adapters.display import BUYER_LABELS, SELLER_LABELS, offer_he, result_line, transcript_he
+from vbm.adapters.texts import REASON_HE, STYLE_HE, TERMS_HE, VARIANT_HE
+from vbm.infrastructure.reports import save_report
 
 
 # קריאת הפרמטרים של שורת הפקודה
@@ -100,8 +100,9 @@ def print_results_table(results: list[dict], rows: list[dict]) -> None:
 # הצגת תמליל מלא אחד בעברית, כולל הנימוקים של הקונה
 def show_transcript(result: dict) -> None:
     """Print one full transcript in Hebrew."""
+    from vbm.infrastructure.wiring import default_translator
     print(f"\n=== תמליל: ספק {STYLE_HE[result['style']]}, {VARIANT_HE[result['variant']]} ===")
-    for row in transcript_he(result):
+    for row in transcript_he(result, default_translator()):
         print(f"סבב {row['round']} - {row['speaker']}: {row['text']}")
         if row["rationale"] is not None:
             print(f"      (נימוק: {row['rationale']})")
@@ -159,7 +160,7 @@ def print_debrief(debrief: dict) -> None:
 def main() -> None:
     """Run one interactive session from the request to the saved report."""
     load_dotenv()
-    from vbm.graph import build_graph, memory_checkpointer
+    from vbm.infrastructure.workflow.graph import build_graph, memory_checkpointer
 
     args = parse_args()
     seed = args.seed if args.seed is not None else random.randint(1, 999_999)

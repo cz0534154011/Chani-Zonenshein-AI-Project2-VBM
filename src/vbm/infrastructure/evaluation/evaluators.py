@@ -4,9 +4,10 @@ from uuid import uuid4
 
 from langgraph.types import Command
 
-from vbm.config import PROMPT_VERSION
-from vbm.economics import round_price
-from vbm.graph import build_graph, memory_checkpointer
+from vbm.application.ports import Ports
+from vbm.domain.economics import round_price
+from vbm.infrastructure.settings import PROMPT_VERSION
+from vbm.infrastructure.workflow.graph import build_graph, memory_checkpointer
 
 # המדיניות הקבועה במקום אדם: עצירה 1 מאשרת, עצירה 2 מפיקה דוח
 POLICY: dict[str, dict] = {
@@ -29,10 +30,10 @@ def sim_summary(result: dict, quantity: int) -> dict:
 
 
 # בונה את פונקציית ה-target לגרסת פרומפט: מריצה את הגרף, עונה על העצירות לפי המדיניות ומחזירה פלט להערכה
-def make_target(prompt_version: str = PROMPT_VERSION):
+def make_target(prompt_version: str = PROMPT_VERSION, ports: Ports | None = None):
     """Return target(inputs) that runs the main graph with the given buyer prompt version and the fixed policy."""
     def target(inputs: dict) -> dict:
-        graph = build_graph(memory_checkpointer())
+        graph = build_graph(memory_checkpointer(), ports)
         config = {"configurable": {"thread_id": str(uuid4()), "prompt_version": prompt_version}}
         graph.invoke(inputs, config)
         while interrupts := graph.get_state(config).interrupts:

@@ -2,19 +2,17 @@
 
 import random
 
-from vbm.config import (
+from vbm.domain.economics import classify_zopa, compute_zopa, with_variant
+from vbm.domain.rules import DECISIVE_MIN_IMPROVEMENT, MAX_ROUNDS, MIN_DAYS_FLOOR
+from vbm.domain.scenario_generator import generate_limits, profile_for_style
+from vbm.domain.schemas import BuyerTerms, validate_buyer_terms
+from vbm.infrastructure.settings import (
     DATASET_BUDGET_FACTOR_RANGE,
     DATASET_DEADLINE_RANGE,
     DATASET_PREFERRED_GAP_RANGE,
     DATASET_PRODUCTS,
     DATASET_QUOTAS,
-    DECISIVE_MIN_IMPROVEMENT,
-    MAX_ROUNDS,
-    MIN_DAYS_FLOOR,
 )
-from vbm.economics import classify_zopa, compute_zopa, with_variant
-from vbm.scenario_generator import generate_limits, profile_for_style
-from vbm.schemas import BuyerTerms, validate_buyer_terms
 
 
 # הגרלת קונה מטבלת המוצרים, לפי seed

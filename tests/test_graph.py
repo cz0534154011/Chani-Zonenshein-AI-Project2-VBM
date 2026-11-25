@@ -1,12 +1,15 @@
 """Full runs of the main graph with fake parser, buyer and report writer (no model calls)."""
 
+from dataclasses import replace
+
 import pytest
 from langgraph.types import Command
 
-import vbm.nodes
-import vbm.subgraph
-from vbm.graph import build_graph, memory_checkpointer
-from vbm.schemas import BuyerDecision, Offer, ParsedRequest
+from vbm.adapters.llm_gateways import LLMBuyerDecider, LLMReportWriter, LLMRequestParser
+from vbm.application.dto import BuyerDecision, ParsedRequest
+from vbm.application.ports import Ports
+from vbm.domain.schemas import Offer
+from vbm.infrastructure.workflow.graph import build_graph, memory_checkpointer
 
 PARSED = ParsedRequest(product="office chair", quantity=500, max_budget_total=210000, target_total=160000,
                        deadline_days=30, preferred_days=None, preferred_terms="net60",
@@ -40,12 +43,11 @@ class SteadyBuyer:
 
 
 @pytest.fixture
-def fakes(monkeypatch):
+def fakes():
     parser, writer = Fixed(PARSED), Fixed("## דוח\nאלה סימולציות בלבד.")
-    monkeypatch.setattr(vbm.nodes, "get_parser", lambda: parser)
-    monkeypatch.setattr(vbm.nodes, "get_report_writer", lambda: writer)
-    monkeypatch.setattr(vbm.subgraph, "get_buyer_decider", lambda: SteadyBuyer())
-    return parser, writer
+    ports = Ports(parser=LLMRequestParser(lambda: parser), buyer_decider=LLMBuyerDecider(lambda: SteadyBuyer()),
+                  report_writer=LLMReportWriter(lambda: writer))
+    return parser, writer, ports
 
 
 def pending(graph, config):
@@ -53,8 +55,8 @@ def pending(graph, config):
 
 
 def test_interactive_run_with_both_stops_and_one_what_if(fakes):
-    parser, writer = fakes
-    graph = build_graph(memory_checkpointer())
+    parser, writer, ports = fakes
+    graph = build_graph(memory_checkpointer(), ports)
     config = {"configurable": {"thread_id": "t1"}}
     graph.invoke({"raw_request": "500 כיסאות משרדיים", "seed": 7, "max_rounds": 8}, config)
     assert pending(graph, config)["type"] == "confirm_terms"
@@ -77,7 +79,7 @@ def test_interactive_run_with_both_stops_and_one_what_if(fakes):
 
 
 def test_invalid_what_if_answer_stops_again(fakes):
-    graph = build_graph(memory_checkpointer())
+    graph = build_graph(memory_checkpointer(), fakes[2])
     config = {"configurable": {"thread_id": "t2"}}
     graph.invoke({"buyer": BUYER, "seller_profiles": LIMITS, "max_rounds": 8}, config)
     graph.invoke(Command(resume={"action": "change_terms", "changes": {"target_total": 999999}}), config)
@@ -86,8 +88,8 @@ def test_invalid_what_if_answer_stops_again(fakes):
 
 
 def test_structured_input_skips_parsing_and_runs_nine_simulations(fakes):
-    parser, _ = fakes
-    graph = build_graph(memory_checkpointer())
+    parser, _, ports = fakes
+    graph = build_graph(memory_checkpointer(), ports)
     config = {"configurable": {"thread_id": "t3"}}
     graph.invoke({"buyer": BUYER, "seller_profiles": LIMITS, "max_rounds": 8}, config)
     state = graph.get_state(config).values
@@ -95,10 +97,9 @@ def test_structured_input_skips_parsing_and_runs_nine_simulations(fakes):
     assert state["report_data"]["feasibility"] == {"tough": True, "balanced": True, "flexible": True}
 
 
-def test_unverified_report_falls_back_after_three_attempts(fakes, monkeypatch):
+def test_unverified_report_falls_back_after_three_attempts(fakes):
     writer = Fixed("המחיר הצפוי הוא 123.45 ליחידה.")
-    monkeypatch.setattr(vbm.nodes, "get_report_writer", lambda: writer)
-    graph = build_graph(memory_checkpointer())
+    graph = build_graph(memory_checkpointer(), replace(fakes[2], report_writer=LLMReportWriter(lambda: writer)))
     config = {"configurable": {"thread_id": "t4"}}
     graph.invoke({"buyer": BUYER, "seller_profiles": LIMITS, "max_rounds": 8}, config)
     final = graph.invoke(Command(resume={"action": "report"}), config)
@@ -107,7 +108,7 @@ def test_unverified_report_falls_back_after_three_attempts(fakes, monkeypatch):
 
 
 def test_seller_styles_limits_the_simulations(fakes):
-    graph = build_graph(memory_checkpointer())
+    graph = build_graph(memory_checkpointer(), fakes[2])
     config = {"configurable": {"thread_id": "t5"}}
     graph.invoke({"buyer": BUYER, "seller_profiles": LIMITS, "seller_styles": ["tough"], "max_rounds": 8}, config)
     results = graph.get_state(config).values["sim_results"]
@@ -115,7 +116,7 @@ def test_seller_styles_limits_the_simulations(fakes):
 
 
 def test_what_if_keeps_the_drawn_supplier(fakes):
-    graph = build_graph(memory_checkpointer())
+    graph = build_graph(memory_checkpointer(), fakes[2])
     config = {"configurable": {"thread_id": "t6"}}
     graph.invoke({"buyer": BUYER, "seed": 1, "max_rounds": 8}, config)
     before = graph.get_state(config).values["sim_specs"][0]["seller"]

@@ -1,21 +1,11 @@
-"""VBM analysis: ReportData computed in code from the current batch of simulations (spec section 7)."""
+"""VBM analysis: ReportData computed in code from the current batch of simulations (spec section 7); numbers only, no text."""
 
 from statistics import mean
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
-from vbm.config import DECISIVE_MIN_IMPROVEMENT, MAX_ROUNDS, PATIENCE_RATIO
-from vbm.economics import allowed_payment_terms, max_allowed_days, round_price, with_variant
-from vbm.schemas import BuyerTerms, Offer, SimResult
-
-STYLE_HE = {"tough": "קשוח", "balanced": "מאוזן", "flexible": "גמיש"}
-VARIANT_HE = {"base": "בסיס", "payment": "גמישות בתשלום", "delivery": "גמישות במועד"}
-REASON_HE = {
-    "delivery_impossible": "המועד שנדרש מהיר מהמועד המינימלי של הספק",
-    "seller_quit": "הספק פרש בגלל הצעות נמוכות מדי",
-    "buyer_walk_away": "הקונה פרש",
-    "max_rounds": "נגמרו הסבבים בלי הסכמה",
-}
-CONCESSION_HE = {"payment": "גמישות בתנאי התשלום", "delivery": "גמישות במועד האספקה", "none": "אין ויתור מכריע"}
+from vbm.domain.economics import allowed_payment_terms, max_allowed_days, round_price, with_variant
+from vbm.domain.rules import DECISIVE_MIN_IMPROVEMENT, MAX_ROUNDS, PATIENCE_RATIO
+from vbm.domain.schemas import BuyerTerms, Offer, SimResult
 
 
 class ReportData(TypedDict):
@@ -31,7 +21,7 @@ class ReportData(TypedDict):
     simulations_count: int
     max_rounds: int
     price_gap: dict
-    preview: str
+    preview: NotRequired[str]  # Hebrew summary, added by the workflow from adapters.texts
 
 
 # רק התוצאות של ה-batch הנוכחי (אחרי לולאת "מה אם" נשארות גם הישנות)
@@ -137,83 +127,6 @@ def patience_round(results: list[SimResult]) -> int | None:
     return None
 
 
-# משפט הסבלנות בעברית, כולל המקרים שבהם אין נתון
-def patience_text(data: dict) -> str:
-    """Hebrew sentence on the tough supplier's patience, never leaving None to interpretation."""
-    percent, max_rounds = data["patience_threshold_percent"], data["max_rounds"]
-    if data["patience"] is not None:
-        return (f"הספק הקשוח ירד לראשונה מתחת ל-{percent}% מהמחירון בסבב {data['patience']} "
-                f"מתוך {max_rounds}. עד אז כדאי להחזיק בעמדה.")
-    tough = [r for r in data["simulations"] if r["style"] == "tough" and r["variant"] == "base"]
-    if not tough:
-        return "לא נבדק ספק קשוח בסימולציות האלה, ולכן אין נתון על הסבלנות הנדרשת."
-    if tough[0]["rounds"] < max_rounds:
-        return (f"הסימולציה מול הספק הקשוח הסתיימה בסבב {tough[0]['rounds']}, לפני שהספק ירד מתחת ל-{percent}% "
-                "מהמחירון, ולכן אין נתון על הסבלנות הנדרשת.")
-    return (f"גם אחרי {max_rounds} סבבים הספק הקשוח לא ירד מתחת ל-{percent}% מהמחירון, "
-            "כלומר מול ספק כזה נדרשת סבלנות רבה.")
-
-
-# משפט טווח המחירים בעברית: מחיר אחד או טווח
-def price_range_text(price_range: dict | None) -> str:
-    """Hebrew sentence on the base-deal prices."""
-    if not price_range:
-        return "לא נסגרה אף עסקה בגרסת הבסיס."
-    if price_range["min"] == price_range["max"]:
-        return f"כל עסקאות הבסיס נסגרו ב-{price_range['min']} ליחידה."
-    return f"עסקאות הבסיס נסגרו בין {price_range['min']} ל-{price_range['max']} ליחידה."
-
-
-# משפט הוויתור המכריע בעברית, כולל הסיבה
-def concession_text(data: dict) -> str:
-    """Hebrew sentence saying which concession is decisive and why."""
-    concession = data["decisive_concession"]
-    if concession == "none":
-        return "אף גמישות לא הפכה 'אין עסקה' לעסקה, ואף אחת לא הורידה את המחיר הממוצע ביותר מ-1%."
-    deals = {v: {r["style"] for r in data["simulations"] if r["variant"] == v and r["outcome"] == "deal"}
-             for v in ("base", concession)}
-    converted = [s for s in ("tough", "balanced", "flexible") if s in deals[concession] - deals["base"]]
-    if converted:
-        count = "סימולציה אחת" if len(converted) == 1 else f"{len(converted)} סימולציות"
-        names = ", ".join(STYLE_HE[s] for s in converted)
-        return f"{CONCESSION_HE[concession]} הפכה {count} מ'אין עסקה' לעסקה (מול ספק {names})."
-    means = data["variant_means"]
-    return (f"{CONCESSION_HE[concession]} הורידה את המחיר הממוצע מ-{means['base']} "
-            f"ל-{means[concession]} ליחידה.")
-
-
-# שורות הפער בעברית: כמה חסר בבסיס ומה כל גמישות סוגרת; ריק אם אין פער
-def gap_lines(gap: dict) -> list[str]:
-    """Hebrew lines on the price gap (empty when the base variant has no gap)."""
-    if not gap["base_has_gap"]:
-        return []
-    base = gap["variants"]["base"]
-    lines = [f"בבסיס ההצעה הנמוכה שנצפתה היא {base['unit_price']} ליחידה, {base['gap_per_unit']} מעל התקציב "
-             f"ליחידה ({gap['budget_per_unit']}). לסגירה בלי גמישות נדרש תקציב כולל של {base['required_total']}."]
-    for variant in ("payment", "delivery"):
-        item = gap["variants"][variant]
-        if item is None:
-            lines.append(f"{CONCESSION_HE[variant]}: לא נצפתה הצעה מתאימה.")
-        elif item["closes"]:
-            lines.append(f"{CONCESSION_HE[variant]}: סוגרת את הפער ({item['unit_price']} ליחידה).")
-        else:
-            lines.append(f"{CONCESSION_HE[variant]}: לא סוגרת את הפער (נשארים {item['gap_per_unit']} ליחידה).")
-    return lines
-
-
-# תקציר של 3-4 שורות לעצירה 2
-def build_preview(feasibility: dict, price_range: dict | None, concession: str, dealbreakers: dict,
-                  gap: dict) -> str:
-    """Short Hebrew summary of the findings for the second stop."""
-    deals = ", ".join(f"{STYLE_HE[s]}: {'כן' if ok else 'לא'}" for s, ok in feasibility.items())
-    lines = [f"עסקה בגרסת הבסיס - {deals}."]
-    lines.append(price_range_text(price_range))
-    lines.append(f"הוויתור המכריע: {CONCESSION_HE[concession]}.")
-    if dealbreakers:
-        lines.append("מה מנע עסקה: " + "; ".join(f"{REASON_HE[k]} ({v})" for k, v in dealbreakers.items()) + ".")
-    return "\n".join(lines + gap_lines(gap))
-
-
 # חישוב ReportData מתוצאות ה-batch הנוכחי
 def analyze_results(results: list[SimResult], buyer: BuyerTerms, max_rounds: int = MAX_ROUNDS) -> ReportData:
     """Compute every number the report may use; the report model only phrases them."""
@@ -247,5 +160,4 @@ def analyze_results(results: list[SimResult], buyer: BuyerTerms, max_rounds: int
         "simulations_count": len(results),
         "max_rounds": max_rounds,
         "price_gap": gap,
-        "preview": build_preview(feasibility, price_range, concession, dealbreakers, gap),
     }

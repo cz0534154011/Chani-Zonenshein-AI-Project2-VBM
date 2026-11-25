@@ -5,8 +5,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from vbm.config import DATASET_NAME
-from vbm.dataset import build_dataset
+from vbm.infrastructure.evaluation.dataset import build_dataset
+from vbm.infrastructure.settings import DATASET_NAME
 
 DATA_FILE = Path("data/dataset.json")
 DESCRIPTION = "VBM: 18 purchase scenarios (6 wide, 5 narrow, 4 no ZOPA price, 3 no ZOPA delivery); answers computed in code."

@@ -2,8 +2,8 @@
 
 from typing import Literal, TypedDict
 
-from vbm.config import FAST_DELIVERY_FACTOR, NARROW_ZOPA_RATIO, PAYMENT_FACTORS, PRICE_DECIMALS
-from vbm.schemas import BuyerTerms, PaymentTerms, SellerProfile, Variant
+from vbm.domain.rules import FAST_DELIVERY_FACTOR, NARROW_ZOPA_RATIO, PAYMENT_FACTORS, PRICE_DECIMALS
+from vbm.domain.schemas import BuyerTerms, PaymentTerms, SellerProfile, Variant
 
 
 class Zopa(TypedDict):

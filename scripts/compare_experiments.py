@@ -4,8 +4,8 @@ import argparse
 
 from dotenv import load_dotenv
 
-from vbm.config import DATASET_NAME
-from vbm.evaluators import summary_metrics
+from vbm.infrastructure.evaluation.evaluators import summary_metrics
+from vbm.infrastructure.settings import DATASET_NAME
 
 
 # המדדים המסכמים של ניסוי אחד, מחושבים מחדש מהריצות השמורות ב-LangSmith
