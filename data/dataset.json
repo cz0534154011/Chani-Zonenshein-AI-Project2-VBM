@@ -1,0 +1,524 @@
+[
+  {
+    "inputs": {
+      "buyer": {
+        "product": "laptop",
+        "quantity": 40,
+        "target_total": 140000,
+        "max_budget_total": 164713,
+        "deadline_days": 18,
+        "preferred_days": 11,
+        "preferred_terms": "net30",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 4832.16,
+        "min_price": 4164.64,
+        "standard_days": 16,
+        "min_days": 9
+      },
+      "max_rounds": 8,
+      "seed": 1
+    },
+    "outputs": {
+      "zopa_low": 4374.54,
+      "zopa_high": 4117.82,
+      "zopa_exists": false,
+      "decisive_concession": "none",
+      "category": "no_zopa_price"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "office chair",
+        "quantity": 500,
+        "target_total": 160000,
+        "max_budget_total": 180074,
+        "deadline_days": 19,
+        "preferred_days": 17,
+        "preferred_terms": "net60",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 599.56,
+        "min_price": 531.78,
+        "standard_days": 15,
+        "min_days": 11
+      },
+      "max_rounds": 8,
+      "seed": 2
+    },
+    "outputs": {
+      "zopa_low": 542.42,
+      "zopa_high": 360.15,
+      "zopa_exists": false,
+      "decisive_concession": "none",
+      "category": "no_zopa_price"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "laptop",
+        "quantity": 40,
+        "target_total": 140000,
+        "max_budget_total": 169538,
+        "deadline_days": 22,
+        "preferred_days": 13,
+        "preferred_terms": "net30",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 5049.73,
+        "min_price": 3969.38,
+        "standard_days": 25,
+        "min_days": 15
+      },
+      "max_rounds": 8,
+      "seed": 3
+    },
+    "outputs": {
+      "zopa_low": null,
+      "zopa_high": 4238.45,
+      "zopa_exists": false,
+      "decisive_concession": "delivery",
+      "category": "no_zopa_delivery"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "laptop",
+        "quantity": 40,
+        "target_total": 140000,
+        "max_budget_total": 158333,
+        "deadline_days": 33,
+        "preferred_days": 27,
+        "preferred_terms": "net30",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 5045.7,
+        "min_price": 3409.84,
+        "standard_days": 26,
+        "min_days": 16
+      },
+      "max_rounds": 8,
+      "seed": 4
+    },
+    "outputs": {
+      "zopa_low": 3443.94,
+      "zopa_high": 3958.32,
+      "zopa_exists": true,
+      "decisive_concession": "none",
+      "category": "wide"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "LED lamp",
+        "quantity": 300,
+        "target_total": 18000,
+        "max_budget_total": 23806,
+        "deadline_days": 30,
+        "preferred_days": 20,
+        "preferred_terms": "net60",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 100.42,
+        "min_price": 83.9,
+        "standard_days": 34,
+        "min_days": 31
+      },
+      "max_rounds": 8,
+      "seed": 5
+    },
+    "outputs": {
+      "zopa_low": null,
+      "zopa_high": 79.35,
+      "zopa_exists": false,
+      "decisive_concession": "none",
+      "category": "no_zopa_delivery"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "LED lamp",
+        "quantity": 300,
+        "target_total": 18000,
+        "max_budget_total": 22419,
+        "deadline_days": 19,
+        "preferred_days": 15,
+        "preferred_terms": "advance",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 106.56,
+        "min_price": 91.16,
+        "standard_days": 29,
+        "min_days": 22
+      },
+      "max_rounds": 8,
+      "seed": 6
+    },
+    "outputs": {
+      "zopa_low": null,
+      "zopa_high": 74.73,
+      "zopa_exists": false,
+      "decisive_concession": "none",
+      "category": "no_zopa_delivery"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "laptop",
+        "quantity": 40,
+        "target_total": 140000,
+        "max_budget_total": 194416,
+        "deadline_days": 37,
+        "preferred_days": 35,
+        "preferred_terms": "advance",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 5026.08,
+        "min_price": 4476.09,
+        "standard_days": 18,
+        "min_days": 12
+      },
+      "max_rounds": 8,
+      "seed": 8
+    },
+    "outputs": {
+      "zopa_low": 4476.09,
+      "zopa_high": 4860.4,
+      "zopa_exists": true,
+      "decisive_concession": "none",
+      "category": "narrow"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "office desk",
+        "quantity": 120,
+        "target_total": 108000,
+        "max_budget_total": 127455,
+        "deadline_days": 37,
+        "preferred_days": 35,
+        "preferred_terms": "net60",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 1420.02,
+        "min_price": 1055.54,
+        "standard_days": 18,
+        "min_days": 13
+      },
+      "max_rounds": 8,
+      "seed": 9
+    },
+    "outputs": {
+      "zopa_low": 1076.65,
+      "zopa_high": 1062.12,
+      "zopa_exists": false,
+      "decisive_concession": "payment",
+      "category": "no_zopa_price"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "office desk",
+        "quantity": 120,
+        "target_total": 108000,
+        "max_budget_total": 133439,
+        "deadline_days": 43,
+        "preferred_days": 34,
+        "preferred_terms": "advance",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 1414.28,
+        "min_price": 1117.2,
+        "standard_days": 28,
+        "min_days": 18
+      },
+      "max_rounds": 8,
+      "seed": 11
+    },
+    "outputs": {
+      "zopa_low": 1117.2,
+      "zopa_high": 1111.99,
+      "zopa_exists": false,
+      "decisive_concession": "none",
+      "category": "no_zopa_price"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "printer paper box",
+        "quantity": 1000,
+        "target_total": 25000,
+        "max_budget_total": 31104,
+        "deadline_days": 44,
+        "preferred_days": 38,
+        "preferred_terms": "advance",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 37.92,
+        "min_price": 29.2,
+        "standard_days": 27,
+        "min_days": 21
+      },
+      "max_rounds": 8,
+      "seed": 16
+    },
+    "outputs": {
+      "zopa_low": 29.2,
+      "zopa_high": 31.1,
+      "zopa_exists": true,
+      "decisive_concession": "none",
+      "category": "narrow"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "laptop",
+        "quantity": 40,
+        "target_total": 140000,
+        "max_budget_total": 182970,
+        "deadline_days": 40,
+        "preferred_days": 30,
+        "preferred_terms": "net30",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 4896.39,
+        "min_price": 4027.0,
+        "standard_days": 34,
+        "min_days": 27
+      },
+      "max_rounds": 8,
+      "seed": 21
+    },
+    "outputs": {
+      "zopa_low": 4229.96,
+      "zopa_high": 4574.25,
+      "zopa_exists": true,
+      "decisive_concession": "delivery",
+      "category": "narrow"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "LED lamp",
+        "quantity": 300,
+        "target_total": 18000,
+        "max_budget_total": 23099,
+        "deadline_days": 32,
+        "preferred_days": 23,
+        "preferred_terms": "net60",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 97.41,
+        "min_price": 70.36,
+        "standard_days": 14,
+        "min_days": 8
+      },
+      "max_rounds": 8,
+      "seed": 30
+    },
+    "outputs": {
+      "zopa_low": 71.77,
+      "zopa_high": 77.0,
+      "zopa_exists": true,
+      "decisive_concession": "payment",
+      "category": "narrow"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "office chair",
+        "quantity": 500,
+        "target_total": 160000,
+        "max_budget_total": 181395,
+        "deadline_days": 44,
+        "preferred_days": 38,
+        "preferred_terms": "advance",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 418.36,
+        "min_price": 283.69,
+        "standard_days": 26,
+        "min_days": 21
+      },
+      "max_rounds": 8,
+      "seed": 31
+    },
+    "outputs": {
+      "zopa_low": 283.69,
+      "zopa_high": 362.79,
+      "zopa_exists": true,
+      "decisive_concession": "none",
+      "category": "wide"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "office chair",
+        "quantity": 500,
+        "target_total": 160000,
+        "max_budget_total": 182943,
+        "deadline_days": 27,
+        "preferred_days": 24,
+        "preferred_terms": "net30",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 430.86,
+        "min_price": 303.07,
+        "standard_days": 23,
+        "min_days": 17
+      },
+      "max_rounds": 8,
+      "seed": 32
+    },
+    "outputs": {
+      "zopa_low": 306.1,
+      "zopa_high": 365.89,
+      "zopa_exists": true,
+      "decisive_concession": "none",
+      "category": "wide"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "office desk",
+        "quantity": 120,
+        "target_total": 108000,
+        "max_budget_total": 143246,
+        "deadline_days": 41,
+        "preferred_days": 40,
+        "preferred_terms": "advance",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 1515.32,
+        "min_price": 1147.48,
+        "standard_days": 17,
+        "min_days": 13
+      },
+      "max_rounds": 8,
+      "seed": 38
+    },
+    "outputs": {
+      "zopa_low": 1147.48,
+      "zopa_high": 1193.72,
+      "zopa_exists": true,
+      "decisive_concession": "none",
+      "category": "narrow"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "laptop",
+        "quantity": 40,
+        "target_total": 140000,
+        "max_budget_total": 170187,
+        "deadline_days": 30,
+        "preferred_days": 27,
+        "preferred_terms": "advance",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 4990.69,
+        "min_price": 3724.8,
+        "standard_days": 20,
+        "min_days": 14
+      },
+      "max_rounds": 8,
+      "seed": 39
+    },
+    "outputs": {
+      "zopa_low": 3724.8,
+      "zopa_high": 4254.68,
+      "zopa_exists": true,
+      "decisive_concession": "none",
+      "category": "wide"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "office chair",
+        "quantity": 500,
+        "target_total": 160000,
+        "max_budget_total": 209419,
+        "deadline_days": 32,
+        "preferred_days": 30,
+        "preferred_terms": "net30",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 423.4,
+        "min_price": 348.91,
+        "standard_days": 18,
+        "min_days": 8
+      },
+      "max_rounds": 8,
+      "seed": 43
+    },
+    "outputs": {
+      "zopa_low": 352.4,
+      "zopa_high": 418.84,
+      "zopa_exists": true,
+      "decisive_concession": "none",
+      "category": "wide"
+    }
+  },
+  {
+    "inputs": {
+      "buyer": {
+        "product": "printer paper box",
+        "quantity": 1000,
+        "target_total": 25000,
+        "max_budget_total": 31160,
+        "deadline_days": 40,
+        "preferred_days": 39,
+        "preferred_terms": "net30",
+        "flexible_on": []
+      },
+      "seller_profiles": {
+        "list_price": 36.58,
+        "min_price": 28.24,
+        "standard_days": 16,
+        "min_days": 9
+      },
+      "max_rounds": 8,
+      "seed": 45
+    },
+    "outputs": {
+      "zopa_low": 28.52,
+      "zopa_high": 31.16,
+      "zopa_exists": true,
+      "decisive_concession": "none",
+      "category": "wide"
+    }
+  }
+]
