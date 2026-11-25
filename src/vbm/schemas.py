@@ -21,10 +21,12 @@ class Offer(BaseModel):
 class BuyerDecision(BaseModel):
     """The buyer agent's decision in one round (LLM structured output)."""
 
-    action: Literal["accept", "counter", "walk_away"]
-    offer: Offer | None = None
-    message: str
-    rationale: str
+    action: Literal["accept", "counter", "walk_away"] = Field(
+        description="accept a supplier offer, counter with your own offer, or walk_away to end the negotiation")
+    offer: Offer | None = Field(
+        default=None, description="counter: your offer; accept: the supplier option you accept; walk_away: null")
+    message: str = Field(description="what you say to the supplier, in English")
+    rationale: str = Field(description="your private reasoning for this decision, one or two sentences; never empty")
 
     # הצעה נגדית חייבת לכלול הצעה
     @model_validator(mode="after")

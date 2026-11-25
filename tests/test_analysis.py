@@ -1,6 +1,7 @@
 """Tests for vbm.analysis (ReportData) and the report number check in vbm.nodes."""
 
-from vbm.analysis import analyze_results, current_batch, decisive_concession, patience_round
+from vbm.analysis import (analyze_results, current_batch, decisive_concession, lowest_allowed_offer,
+                          patience_round, patience_text, price_gap)
 from vbm.nodes import fallback_report, unverified_numbers
 from vbm.schemas import Offer
 
@@ -54,3 +55,53 @@ def test_report_data_and_number_check():
     assert unverified_numbers("ניתן לסגור ב-400 ליחידה, תקציב 210,000.", data) == []
     assert unverified_numbers("ניתן לסגור ב-385 ליחידה.", data) == ["385"]
     assert unverified_numbers(fallback_report(data), data) == []
+
+
+def seller_offers(round_no, *offers):
+    return {"round": round_no, "speaker": "seller", "message": "", "message_he": "", "rationale": None,
+            "offers": [Offer(unit_price=p, delivery_days=d, payment_terms=t) for p, d, t in offers]}
+
+
+def test_lowest_offer_counts_only_terms_the_variant_allows():
+    transcript = [seller_offers(0, (480, 21, "advance")), seller_offers(1, (430, 21, "advance"), (445, 30, "net60")),
+                  seller_offers(2, (420, 40, "net60"))]
+    base = result("tough", "base", reason="max_rounds", transcript=transcript)
+    payment = result("tough", "payment", reason="max_rounds", transcript=transcript)
+    assert lowest_allowed_offer(base, BUYER).unit_price == 445  # advance and 40 days are not allowed
+    assert lowest_allowed_offer(payment, BUYER).unit_price == 430  # advance is allowed, 40 days is not
+
+
+def test_price_gap_per_variant():
+    base = [seller_offers(1, (440, 30, "net60"))]
+    delivery = [seller_offers(1, (415, 30, "net60"))]
+    results = [result("tough", "base", reason="max_rounds", transcript=base),
+               result("tough", "payment", reason="max_rounds", transcript=[seller_offers(1, (430, 30, "advance"))]),
+               result("tough", "delivery", 415, transcript=delivery)]
+    gap = price_gap(results, BUYER)
+    assert gap["budget_per_unit"] == 420 and gap["base_has_gap"]
+    assert gap["variants"]["base"]["gap_per_unit"] == 20 and gap["variants"]["base"]["required_total"] == 220000
+    assert gap["variants"]["payment"]["gap_per_unit"] == 10 and not gap["variants"]["payment"]["closes"]
+    assert gap["variants"]["delivery"]["closes"]
+    data = analyze_results(results, BUYER)
+    assert "220000" in data["preview"] and "סוגרת את הפער" in data["preview"]
+    assert unverified_numbers(fallback_report(data), data) == []
+    assert "## מה יסגור את הפער" in fallback_report(data)
+
+
+def test_no_gap_section_when_the_base_closes():
+    results = [result(s, v, 400, transcript=[seller_offers(1, (400, 30, "net60"))])
+               for s in ("tough", "balanced", "flexible") for v in ("base", "payment", "delivery")]
+    data = analyze_results(results, BUYER)
+    assert not data["price_gap"]["base_has_gap"] and "מה יסגור את הפער" not in fallback_report(data)
+
+
+def test_patience_text_covers_every_case():
+    data = {"patience": None, "patience_threshold_percent": 90, "max_rounds": 8,
+            "simulations": [{"style": "tough", "variant": "base", "rounds": 8}]}
+    assert "סבלנות רבה" in patience_text(data)
+    data["simulations"][0]["rounds"] = 3
+    assert "הסתיימה בסבב 3" in patience_text(data)
+    data["simulations"] = []
+    assert "לא נבדק ספק קשוח" in patience_text(data)
+    data["patience"] = 5
+    assert "בסבב 5 מתוך 8" in patience_text(data)

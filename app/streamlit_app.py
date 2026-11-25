@@ -105,12 +105,13 @@ def show_confirm() -> None:
 
 
 # טבלת התוצאות של ה-batch הנוכחי
-def results_table(results: list[dict]) -> None:
-    """One row per simulation."""
+def results_table(results: list[dict], rows: list[dict]) -> None:
+    """One row per simulation; `rows` are the matching ReportData simulation rows (lowest offer seen)."""
     st.dataframe([{
         "ספק": STYLE_HE[r["style"]], "גרסה": VARIANT_HE[r["variant"]], "תוצאה": outcome_he(r),
+        "ההצעה הנמוכה שנצפתה": row["lowest_offer"],
         "סבבים": r["rounds"], "התערבויות מעקה": r["guardrail_hits"],
-    } for r in results], hide_index=True, width="stretch")
+    } for r, row in zip(results, rows)], hide_index=True, width="stretch")
 
 
 # צפייה בתמליל של סימולציה אחת, מתורגם לעברית
@@ -176,7 +177,7 @@ def show_findings() -> None:
     st.info(value["preview"].replace("\n", "\n\n"))
     if value.get("error"):
         st.error(f"השינוי הקודם לא תקין: {value['error']}")
-    results_table(results)
+    results_table(results, value["report_data"]["simulations"])
     transcript_viewer(results)
     st.divider()
     action = st.radio("מה הלאה?", ["להפיק דוח", "מה אם אשנה את העמדה שלי", "מה אם הספק שונה ממה שהנחתי"])
@@ -203,7 +204,7 @@ def show_done() -> None:
     st.markdown(state["report_text"])
     st.download_button("הורד את הדוח (Markdown)", state["report_text"],
                        file_name=st.session_state.saved_path.name, mime="text/markdown")
-    st.caption(f"הדוח נשמר: {st.session_state.saved_path}")
+    st.caption(f"הדוח נשמר: {st.session_state.saved_path} | seed של הריצה: {st.session_state.seed}")
     debrief = state["debrief"]
     with st.expander("חשיפה: הגבולות הסודיים של הספק", expanded=True):
         cols = st.columns(4)
@@ -230,8 +231,9 @@ def main() -> None:
         new_session()
     with st.sidebar:
         st.header("הגדרות")
-        st.number_input("seed (קובע את הספק המדומה)", min_value=1, step=1, key="seed")
         st.selectbox("סגנון ספק", list(STYLE_OPTIONS), key="style_choice")
+        with st.expander("הגדרות מתקדמות"):
+            st.number_input("seed (קובע את הספק המדומה)", min_value=1, step=1, key="seed")
         if st.button("התחל מחדש"):
             new_session()
             st.rerun()

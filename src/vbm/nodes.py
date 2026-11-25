@@ -4,7 +4,8 @@ import re
 
 from langgraph.types import Send, interrupt
 
-from vbm.analysis import CONCESSION_HE, REASON_HE, STYLE_HE, VARIANT_HE, analyze_results, current_batch
+from vbm.analysis import (CONCESSION_HE, REASON_HE, STYLE_HE, VARIANT_HE, analyze_results, current_batch,
+                          gap_lines, patience_text)
 from vbm.config import MAX_REPORT_ATTEMPTS, MAX_ROUNDS
 from vbm.economics import compute_zopa, round_price, with_variant
 from vbm.llm import get_parser, get_report_writer
@@ -85,7 +86,7 @@ def plan_simulations(state: MainState) -> dict:
 def analyze(state: MainState) -> dict:
     """Compute ReportData from the current batch only."""
     results = current_batch(state["sim_results"], state["batch_id"])
-    return {"report_data": analyze_results(results, state["buyer"])}
+    return {"report_data": analyze_results(results, state["buyer"], state.get("max_rounds", MAX_ROUNDS))}
 
 
 # החלת הבחירה של המשתמש בעצירה 2, עם בדיקת תקינות
@@ -191,11 +192,10 @@ def fallback_report(data: dict) -> str:
         lines += [f"- {REASON_HE[reason]}: {count}." for reason, count in data["dealbreakers"].items()]
     else:
         lines.append("- בכל הסימולציות נסגרה עסקה.")
-    lines += ["", "## כמה סבלנות נדרשת"]
-    if data["patience"] is not None:
-        lines.append(f"- ספק קשוח התחיל לוותר בסבב {data['patience']}.")
-    else:
-        lines.append(f"- ספק קשוח לא ירד מתחת ל-{data['patience_threshold_percent']}% מהמחירון.")
+    lines += ["", "## כמה סבלנות נדרשת", f"- {patience_text(data)}"]
+    if data["price_gap"]["base_has_gap"]:
+        lines += ["", "## מה יסגור את הפער"] + [f"- {line}" for line in gap_lines(data["price_gap"])]
+        lines.append("- אלה ההצעות הנמוכות ביותר שנצפו. ייתכן שהספק היה מוכן לרדת עוד.")
     lines += ["", "התוצאות מבוססות על סימולציות, ואינן הבטחה להתנהגות הספק האמיתי."]
     return "\n".join(lines)
 

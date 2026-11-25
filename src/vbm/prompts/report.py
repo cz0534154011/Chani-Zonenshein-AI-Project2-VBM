@@ -4,25 +4,85 @@ import json
 
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
+from vbm.analysis import CONCESSION_HE, REASON_HE, STYLE_HE, VARIANT_HE, gap_lines, patience_text
+from vbm.seller_sim import TERMS_HE
+
 SYSTEM = """You write a short meeting-preparation report in Hebrew, in Markdown, for a business owner
-who is about to meet a supplier. Use ONLY the data you are given. Every number you write must appear
-in the data exactly as given; do not calculate new numbers, percentages or totals.
-Seller styles: tough = קשוח, balanced = מאוזן, flexible = גמיש.
-Buyer variants: base = בסיס, payment = גמישות בתנאי תשלום, delivery = גמישות במועד אספקה.
+who is about to meet a supplier. Use ONLY the data you are given; it is already in Hebrew.
+Write only in Hebrew: never copy English words, codes or field names into the report.
+Every number you write must appear in the data exactly as given; do not calculate new numbers, percentages or totals.
+Terms: a "simulation" (סימולציה) is one full simulated negotiation; there are several simulations, one per
+supplier style and buyer variant. A "round" (סבב) is one offer and answer inside a simulation.
+Never mix the two words.
 Sections, in this order:
-## האם אפשר לסגור עסקה - for each seller style, based on the base variant.
+## האם אפשר לסגור עסקה - for each supplier style, based on the base variant.
 ## טווח מחירים סביר
-## על מה כדאי להתגמש - based on decisive_concession and variant_means.
-## מה מפוצץ את העסקה - based on dealbreakers.
-## כמה סבלנות נדרשת - based on patience (the round where a tough supplier starts to concede).
-State clearly that these are simulations, not a promise of the real supplier's behavior."""
+## על מה כדאי להתגמש - based on the decisive concession and the average price per variant.
+## מה מפוצץ את העסקה - based on the reasons for no deal and how many simulations each one ended.
+## כמה סבלנות נדרשת - use the patience sentence from the data, in your own words, without changing its meaning.
+## מה יסגור את הפער - ONLY if the data has a price-gap section: what each option needs, which one closes the gap,
+and the caveat that these are the lowest offers observed and the supplier may go lower.
+End with one sentence saying that these are simulations, not a promise of the real supplier's behavior."""
+
+
+# הצעה בעברית לנתוני הדוח
+def _offer_he(item: dict) -> dict:
+    return {"מחיר ליחידה": item["unit_price"], "מועד אספקה (ימים)": item["delivery_days"],
+            "תנאי תשלום": TERMS_HE[item["payment_terms"]]}
+
+
+# תצוגה עברית של ReportData למודל: בלי קודים באנגלית ובלי None
+def report_view(data: dict) -> dict:
+    """ReportData with Hebrew keys and values; numbers unchanged so the report check still applies."""
+    buyer = data["buyer"]
+    view = {
+        "בקשת בעל העסק": {
+            "מוצר": buyer["product"], "כמות": buyer["quantity"],
+            "תקציב מקסימלי כולל": buyer["max_budget_total"], "תקציב ליחידה": buyer["budget_per_unit"],
+            "יעד כולל": buyer["target_total"], "יעד ליחידה": buyer["target_per_unit"],
+            "מועד אחרון (ימים)": buyer["deadline_days"], "מועד מועדף (ימים)": buyer["preferred_days"] or buyer["deadline_days"],
+            "תנאי תשלום מועדפים": TERMS_HE[buyer["preferred_terms"]],
+        },
+        "מספר הסימולציות": data["simulations_count"],
+        "מספר הסבבים המקסימלי בכל סימולציה": data["max_rounds"],
+        "הסימולציות": [{
+            "סגנון הספק": STYLE_HE[r["style"]], "גרסת הקונה": VARIANT_HE[r["variant"]],
+            "תוצאה": "עסקה" if r["outcome"] == "deal" else "אין עסקה",
+            **({"מחיר ליחידה": r["unit_price"], "מועד אספקה (ימים)": r["delivery_days"],
+                "תנאי תשלום": TERMS_HE[r["payment_terms"]]} if r["outcome"] == "deal"
+               else {"סיבה": REASON_HE[r["no_deal_reason"]]}),
+            "מספר סבבים": r["rounds"],
+            "ההצעה הנמוכה שנצפתה": r["lowest_offer"] if r["lowest_offer"] is not None else "לא נצפתה הצעה מתאימה",
+        } for r in data["simulations"]],
+        "עסקה בגרסת הבסיס לפי סגנון": {STYLE_HE[s]: "כן" if ok else "לא" for s, ok in data["feasibility"].items()},
+        "טווח המחירים בעסקאות הבסיס": (
+            {"מינימום": data["price_range"]["min"], "מקסימום": data["price_range"]["max"]}
+            if data["price_range"] else "לא נסגרה אף עסקה בגרסת הבסיס"),
+        "מחיר ממוצע לפי גרסה": {VARIANT_HE[v]: m if m is not None else "אין עסקאות"
+                                for v, m in data["variant_means"].items()},
+        "הוויתור המכריע": CONCESSION_HE[data["decisive_concession"]],
+        "סיבות לאי-סגירה (מספר סימולציות)": {REASON_HE[k]: n for k, n in data["dealbreakers"].items()}
+                                             or "בכל הסימולציות נסגרה עסקה",
+        "משפט הסבלנות": patience_text(data),
+    }
+    gap = data["price_gap"]
+    if gap["base_has_gap"]:
+        view["פער המחיר"] = {
+            "תקציב ליחידה": gap["budget_per_unit"],
+            "לפי גרסה": {VARIANT_HE[v]: ({**_offer_he(item), "פער ליחידה מול התקציב": item["gap_per_unit"],
+                                          "תקציב כולל שנדרש": item["required_total"],
+                                          "סוגרת את הפער": "כן" if item["closes"] else "לא"}
+                                         if item else "לא נצפתה הצעה מתאימה")
+                         for v, item in gap["variants"].items()},
+            "סיכום": gap_lines(gap),
+        }
+    return view
 
 
 # בניית הפרומפט של הדוח מ-ReportData, ובניסיון חוזר גם המספרים שלא אומתו
 def build_report_prompt(report_data: dict, unverified: list[str]) -> list[BaseMessage]:
     """Return the system and user messages for writing the report."""
-    data = {k: v for k, v in report_data.items() if k != "preview"}
-    user = "Data:\n" + json.dumps(data, ensure_ascii=False, indent=2)
+    user = "הנתונים:\n" + json.dumps(report_view(report_data), ensure_ascii=False, indent=2)
     if unverified:
         user += ("\n\nYour previous report contained numbers that are not in the data: "
                  + ", ".join(unverified) + ". Write the report again without them.")

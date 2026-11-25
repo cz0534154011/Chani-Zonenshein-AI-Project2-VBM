@@ -86,13 +86,15 @@ def parse_pairs(text: str) -> dict:
     return pairs
 
 
-# טבלת התוצאות של ה-batch האחרון
-def print_results_table(results: list[dict]) -> None:
-    """One numbered line per simulation."""
+# טבלת התוצאות של ה-batch האחרון, עם ההצעה הנמוכה שנצפתה בכל סימולציה
+def print_results_table(results: list[dict], rows: list[dict]) -> None:
+    """One numbered line per simulation; `rows` are the matching ReportData simulation rows."""
     print("\n=== תוצאות הסימולציות ===")
-    for i, r in enumerate(results, 1):
+    for i, (r, row) in enumerate(zip(results, rows), 1):
         outcome = offer_he(r["final"]) if r["final"] else f"אין עסקה ({REASON_HE[r['no_deal_reason']]})"
-        print(f"{i}. ספק {STYLE_HE[r['style']]} | {VARIANT_HE[r['variant']]} | {r['rounds']} סבבים | {outcome}")
+        lowest = row["lowest_offer"] if row["lowest_offer"] is not None else "-"
+        print(f"{i}. ספק {STYLE_HE[r['style']]} | {VARIANT_HE[r['variant']]} | {r['rounds']} סבבים | {outcome}"
+              f" | ההצעה הנמוכה שנצפתה: {lowest}")
 
 
 # הצגת תמליל מלא אחד בעברית, כולל הנימוקים של הקונה
@@ -120,7 +122,7 @@ def browse_transcripts(results: list[dict]) -> None:
 def ask_findings(value: dict, state: dict) -> dict:
     """Show the results and preview, then return the user's choice."""
     batch = [r for r in state["sim_results"] if r["batch_id"] == state["batch_id"]]
-    print_results_table(batch)
+    print_results_table(batch, value["report_data"]["simulations"])
     browse_transcripts(batch)
     print("\n=== ממצאים ראשוניים ===\n" + value["preview"])
     if value.get("error"):
