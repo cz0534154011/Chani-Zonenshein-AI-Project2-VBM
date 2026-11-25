@@ -25,7 +25,7 @@ def pick_examples(examples: list, limit: int) -> list:
 def parse_args() -> argparse.Namespace:
     """--prefix, --prompt-version, --reps and --limit (for a short development run)."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--prefix", default="baseline-v1", help="experiment name prefix in LangSmith")
+    parser.add_argument("--prefix", default=None, help="experiment name prefix in LangSmith (default: exp-<prompt version>)")
     parser.add_argument("--prompt-version", choices=PROMPT_VERSIONS, default=PROMPT_VERSION, help="buyer prompt version")
     parser.add_argument("--reps", type=int, default=EXPERIMENT_REPETITIONS, help="repetitions per scenario")
     parser.add_argument("--limit", type=int, default=None, help="number of scenarios (default: all 18)")
@@ -45,7 +45,7 @@ def main() -> None:
           f"({len(examples) * args.reps * 9} simulations).")
     results = client.evaluate(
         make_target(args.prompt_version), data=examples, evaluators=EVALUATORS, summary_evaluators=[summary_evaluator],
-        experiment_prefix=args.prefix, num_repetitions=args.reps, max_concurrency=EXPERIMENT_MAX_CONCURRENCY,
+        experiment_prefix=args.prefix or f"exp-{args.prompt_version}", num_repetitions=args.reps, max_concurrency=EXPERIMENT_MAX_CONCURRENCY,
         metadata={"prompt_version": args.prompt_version, "buyer_model": MODELS["buyer"], "buyer_temperature": TEMPERATURES["buyer"],
                   "report_model": MODELS["report"], "dataset": DATASET_NAME},
     )

@@ -85,5 +85,5 @@ EXPERIMENT_MAX_CONCURRENCY: int = 2
 DATASET_CATEGORY_ORDER: tuple[str, ...] = ("wide", "narrow", "no_zopa_price", "no_zopa_delivery")
 
 # גרסת הפרומפט של הקונה: ברירת המחדל, והגרסאות שאפשר לבחור ב-config["configurable"]["prompt_version"]
-PROMPT_VERSION: str = "v1"
+PROMPT_VERSION: str = "v2"
 PROMPT_VERSIONS: tuple[str, ...] = ("v1", "v2")
