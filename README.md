@@ -196,4 +196,4 @@ tests/       101 pytest tests
 docs/        decisions.md (all decisions), graph.md, images/
 ```
 
-> האפיון המלא: `אפיון_הכנה_לפגישת_רכש.docx` | רשימת המשימות: `רשימת_משימות_הכנה_לפגישה.docx` | יומן ההחלטות: `docs/decisions.md`
+
